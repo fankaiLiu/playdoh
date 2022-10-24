@@ -1,0 +1,7 @@
+[http]
+port=3321
+[log]
+stdout = false
+log_level="info"
+dir = "log"
+file = "app_log"
