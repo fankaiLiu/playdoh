@@ -9,9 +9,10 @@ pub static CFG: Lazy<Configs> = Lazy::new(self::Configs::init);
 impl Configs {
     pub fn init() -> Self {
         let config = Configs::builder()
-        .env()
-        .file(CFG_FILE)
-        .load().expect("解析配置文件错误");
+            .env()
+            .file(CFG_FILE)
+            .load()
+            .expect("解析配置文件错误");
         config
     }
 }

@@ -22,7 +22,7 @@ pub struct Http {
     /// The bind address of the server. Can be set to `0.0.0.0` for example, to
     /// allow other users of the network to access the server.
     #[config(default = "127.0.0.1")]
-    pub  bind: IpAddr,
+    pub bind: IpAddr,
 }
 
 #[derive(Debug, Config)]
@@ -35,8 +35,5 @@ pub struct LogConfig {
     /// `dir` is the directory where the log files will be stored.
     pub dir: String,
     /// `file` is the name of the log file.
-    pub file: PathBuf, 
+    pub file: PathBuf,
 }
-
-
- 
