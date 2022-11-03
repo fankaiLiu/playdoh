@@ -1,8 +1,19 @@
+use std::net::SocketAddr;
+
 use app::starting::{self};
+use axum::{
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
+mod lib;
 use configs::CFG;
 use tracing_subscriber::{fmt, layer::SubscriberExt, EnvFilter, Registry};
+mod error;
+#[tokio::main]
 
-fn main() {
+async fn main() {
     let configs = &CFG.http;
 
     let log_env = starting::get_log_level();
@@ -24,4 +35,19 @@ fn main() {
         ;
     tracing::subscriber::set_global_default(logger).unwrap();
     dbg!(configs);
+
+    let app = Router::new()
+        // `GET /` goes to `root`
+        .route("/", get(root));
+    let addr = SocketAddr::from((configs.bind,configs.port));
+    tracing::debug!("listening on {}", addr);
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
+
+// basic handler that responds with a static string
+async fn root() -> &'static str {
+    "Hello, World!"
 }
