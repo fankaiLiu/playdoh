@@ -15,5 +15,4 @@ tracing-appender = "0.2"
 tracing-subscriber = {version = "0.3", features = ["json", "env-filter", "local-time", "registry"]}
 tokio = { version = "1.21.2", features = ["full"] }
 axum = { version = "0.5.17", features = ["headers"] }
-thiserror = "1.0.37"
 serde_json = "1.0.87"
