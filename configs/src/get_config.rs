@@ -8,11 +8,11 @@ const CFG_FILE: &str = "config/config.toml";
 pub static CFG: Lazy<Configs> = Lazy::new(self::Configs::init);
 impl Configs {
     pub fn init() -> Self {
-        let config = Configs::builder()
+        
+        Configs::builder()
             .env()
             .file(CFG_FILE)
             .load()
-            .expect("解析配置文件错误");
-        config
+            .expect("解析配置文件错误")
     }
 }

@@ -5,7 +5,6 @@ use anyhow::Context;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash};
 use axum::{
-    extract::{Multipart, Query},
     Json,
 };
 use sqlx::{Pool, Postgres};
@@ -20,7 +19,7 @@ pub async fn create_user(
     //
     // Sometimes queries just get too darn big, though. In that case it may be a good idea
     // to move the query to a separate module.
-    let user_id = sqlx::query_scalar!(
+    let _user_id = sqlx::query_scalar!(
         // language=PostgreSQL
         r#"insert into "user" (username, email, password_hash) values ($1, $2, $3) returning user_id"#,
         req.user.username,
@@ -79,7 +78,7 @@ pub async fn login_user(
 async fn hash_password(password: String) -> Result<String> {
     // Argon2 hashing is designed to be computationally intensive,
     // so we need to do this on a blocking thread.
-    Ok(tokio::task::spawn_blocking(move || -> Result<String> {
+    tokio::task::spawn_blocking(move || -> Result<String> {
         let salt = SaltString::generate(rand::thread_rng());
         Ok(
             PasswordHash::generate(Argon2::default(), password, salt.as_str())
@@ -88,11 +87,11 @@ async fn hash_password(password: String) -> Result<String> {
         )
     })
     .await
-    .context("panic in generating password hash")??)
+    .context("panic in generating password hash")?
 }
 
 async fn verify_password(password: String, password_hash: String) -> Result<()> {
-    Ok(tokio::task::spawn_blocking(move || -> Result<()> {
+    tokio::task::spawn_blocking(move || -> Result<()> {
         let hash = PasswordHash::new(&password_hash)
             .map_err(|e| anyhow::anyhow!("invalid password hash: {}", e))?;
 
@@ -103,7 +102,7 @@ async fn verify_password(password: String, password_hash: String) -> Result<()> 
             })
     })
     .await
-    .context("panic in verifying password hash")??)
+    .context("panic in verifying password hash")?
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]

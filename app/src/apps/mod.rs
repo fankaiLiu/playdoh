@@ -1,5 +1,5 @@
 use axum::Router;
-use configs::CFG;
+
 
 pub mod system;
 
@@ -11,7 +11,7 @@ pub fn api() -> Router {
 
 // 需要授权的api
 fn auth_api() -> Router {
-    let router = system::system_api();
+    
     // let router = match &CFG.log.enable_oper_log {
     //     true => router.layer(middleware::from_fn(oper_log_fn_mid)),
     //     false => router,
@@ -25,5 +25,5 @@ fn auth_api() -> Router {
     //     .layer(middleware::from_fn(auth_fn_mid))
     //     .layer(middleware::from_fn(ctx_fn_mid))
     //     .layer(middleware::from_extractor::<Claims>())
-    router
+    system::system_api()
 }

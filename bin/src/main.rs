@@ -3,10 +3,7 @@ use std::net::SocketAddr;
 use app::apps;
 use app::starting::{self};
 use axum::{
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
+    Router,
 };
 use configs::CFG;
 use db::{db_conn, DB};
@@ -52,6 +49,6 @@ async fn main() {
 
 // basic handler that responds with a static string
 async fn root() -> &'static str {
-    let db = DB.get_or_init(db_conn).await;
+    let _db = DB.get_or_init(db_conn).await;
     "Hello, World!"
 }

@@ -10,7 +10,7 @@ use crate::{
 };
 pub async fn create(Json(req): Json<UserBody<NewUser>>) -> Result<String> {
     let db = DB.get_or_init(db_conn).await;
-    let res = service::sys_user::create_user(db, req).await?;
+    let _res = service::sys_user::create_user(db, req).await?;
 
     Ok("ok".to_string())
 }
