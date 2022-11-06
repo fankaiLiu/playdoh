@@ -7,10 +7,10 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-mod lib;
 use configs::CFG;
+use db::{db_conn, DB};
 use tracing_subscriber::{fmt, layer::SubscriberExt, EnvFilter, Registry};
-mod error;
+use app::apps;
 #[tokio::main]
 
 async fn main() {
@@ -36,11 +36,15 @@ async fn main() {
     tracing::subscriber::set_global_default(logger).unwrap();
     dbg!(configs);
 
-    let app = Router::new()
-        // `GET /` goes to `root`
-        .route("/", get(root));
-    let addr = SocketAddr::from((configs.bind,configs.port));
+    // let app = Router::new()
+    //     // `GET /` goes to `root`
+    //     .route("/", get(root));
+    let addr = SocketAddr::from((configs.bind, configs.port));
     tracing::debug!("listening on {}", addr);
+
+    let app = Router::new()
+    .nest("/", apps::api());
+
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
         .await
@@ -49,5 +53,6 @@ async fn main() {
 
 // basic handler that responds with a static string
 async fn root() -> &'static str {
+    let db = DB.get_or_init(db_conn).await;
     "Hello, World!"
 }

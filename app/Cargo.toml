@@ -6,9 +6,26 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+bytes = "1.2.1"
 configs = {path = "../configs"}
-
+serde = "1.0.147"
+db = {path = "../db"}
 time = "0.3.16"
 tracing = "0.1.37"
 tracing-appender = "0.2.2"
 tracing-subscriber  = {version = "0.3", features = ["json", "env-filter", "local-time", "registry"]}
+axum = {version = "0.5", features = ["headers","multipart","original-uri"]}
+serde_json = "1.0.87"
+mime = "0.3.16"
+sqlx = { version = "0.6", features = ["runtime-tokio-native-tls", "postgres", "uuid", "time"] }
+thiserror = "1.0.37"
+tokio = { version = "1", features = ["full"] }
+anyhow = "1.0.66"
+argon2 = "0.4.1"
+sha2 = "0.10.6"
+uuid = { version = "0.8", features = ["serde"] }
+jwt = "0.16.0"
+hmac = "0.11.0"
+async-trait = "0.1.58"
+rand = "0.8.5"
+

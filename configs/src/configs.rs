@@ -10,6 +10,9 @@ pub struct Configs {
 
     #[config(nested)]
     pub log: LogConfig,
+
+    #[config(nested)]
+    pub database: Database,
 }
 
 /// Configuring the HTTP server of our app.
@@ -36,4 +39,12 @@ pub struct LogConfig {
     pub dir: String,
     /// `file` is the name of the log file.
     pub file: PathBuf,
+}
+
+
+#[derive(Debug, Config)]
+pub struct Database {
+    /// 数据库连接
+    pub link: String,
+    pub hmac_key: String,
 }
