@@ -14,7 +14,8 @@ pub async fn db_conn() -> PgPool {
         // across all replicas should not exceed the Postgres connection limit.
         .max_connections(50)
         .connect(&CFG.database.link)
-        .await.expect("数据库连接失败");
+        .await
+        .expect("数据库连接失败");
     // This embeds database migrations in the application binary so we can ensure the database
     // is migrated correctly on startup
     sqlx::migrate!().run(&db).await.expect("数据库迁移失败");

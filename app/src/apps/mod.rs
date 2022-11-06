@@ -7,10 +7,8 @@ pub fn api() -> Router {
     Router::new()
         // 系统管理模块
         .nest("/system", auth_api())
- }
+}
 
-
- 
 // 需要授权的api
 fn auth_api() -> Router {
     let router = system::system_api();

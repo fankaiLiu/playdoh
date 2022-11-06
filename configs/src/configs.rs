@@ -41,7 +41,6 @@ pub struct LogConfig {
     pub file: PathBuf,
 }
 
-
 #[derive(Debug, Config)]
 pub struct Database {
     /// 数据库连接

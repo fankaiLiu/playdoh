@@ -149,8 +149,9 @@ impl IntoResponse for Error {
         let (status_code, code) = self.get_codes();
         (
             status_code,
-            Json(json!({ "code": code, "message": self.to_string() }))
-        ).into_response()
+            Json(json!({ "code": code, "message": self.to_string() })),
+        )
+            .into_response()
     }
 }
 

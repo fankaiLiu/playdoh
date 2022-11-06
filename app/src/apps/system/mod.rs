@@ -1,3 +1,3 @@
-mod service;
 mod api;
-pub use api::{system_api};
+mod service;
+pub use api::system_api;

@@ -1,5 +1,6 @@
 use std::net::SocketAddr;
 
+use app::apps;
 use app::starting::{self};
 use axum::{
     http::StatusCode,
@@ -10,7 +11,6 @@ use axum::{
 use configs::CFG;
 use db::{db_conn, DB};
 use tracing_subscriber::{fmt, layer::SubscriberExt, EnvFilter, Registry};
-use app::apps;
 #[tokio::main]
 
 async fn main() {
@@ -42,8 +42,7 @@ async fn main() {
     let addr = SocketAddr::from((configs.bind, configs.port));
     tracing::debug!("listening on {}", addr);
 
-    let app = Router::new()
-    .nest("/", apps::api());
+    let app = Router::new().nest("/", apps::api());
 
     axum::Server::bind(&addr)
         .serve(app.into_make_service())

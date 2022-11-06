@@ -1,3 +1,5 @@
+use crate::custom_response::ResultExt;
+use crate::Error;
 use crate::Result;
 use anyhow::Context;
 use argon2::password_hash::SaltString;
@@ -6,8 +8,6 @@ use axum::{
     extract::{Multipart, Query},
     Json,
 };
-use crate::Error;
-use crate::custom_response::ResultExt;
 use sqlx::{Pool, Postgres};
 pub async fn create_user(
     db: &Pool<Postgres>,
@@ -48,9 +48,10 @@ pub async fn create_user(
     }))
 }
 
-pub async fn login_user(  db: &Pool<Postgres>,
-    req: UserBody<LoginUser>,)->Result<Json<UserBody<User>>>
-{
+pub async fn login_user(
+    db: &Pool<Postgres>,
+    req: UserBody<LoginUser>,
+) -> Result<Json<UserBody<User>>> {
     let user = sqlx::query!(
         r#"
             select user_id, email, username, bio, image, password_hash 
@@ -90,8 +91,6 @@ async fn hash_password(password: String) -> Result<String> {
     .context("panic in generating password hash")??)
 }
 
-
-
 async fn verify_password(password: String, password_hash: String) -> Result<()> {
     Ok(tokio::task::spawn_blocking(move || -> Result<()> {
         let hash = PasswordHash::new(&password_hash)
@@ -106,7 +105,6 @@ async fn verify_password(password: String, password_hash: String) -> Result<()> 
     .await
     .context("panic in verifying password hash")??)
 }
-
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct UserBody<T> {
@@ -134,5 +132,3 @@ pub struct LoginUser {
     email: String,
     password: String,
 }
-
-

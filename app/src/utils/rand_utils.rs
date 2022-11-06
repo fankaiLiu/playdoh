@@ -1,7 +1,7 @@
-use anyhow::Context;
-use argon2::{password_hash::SaltString, PasswordHash, Argon2};
-use rand::Rng;
 use crate::Result;
+use anyhow::Context;
+use argon2::{password_hash::SaltString, Argon2, PasswordHash};
+use rand::Rng;
 ///  生成指定长度的字符串
 pub fn rand_s(length: usize) -> String {
     const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
@@ -18,6 +18,3 @@ pub fn rand_s(length: usize) -> String {
 
     rand_string
 }
-
- 
- 

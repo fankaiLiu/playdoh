@@ -4,7 +4,7 @@ use serde::Deserialize;
 /// server endpoints for pagination.
 #[derive(Debug, Deserialize)]
 pub struct RequestQuery {
-  pub from: Option<String>,
-  pub offset: Option<u64>,
-  pub limit: Option<u64>,
+    pub from: Option<String>,
+    pub offset: Option<u64>,
+    pub limit: Option<u64>,
 }

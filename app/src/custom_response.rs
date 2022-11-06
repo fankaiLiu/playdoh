@@ -8,7 +8,7 @@ use serde::Serialize;
 use sqlx::error::DatabaseError;
 use tracing::error;
 
-use crate::{pagination::Pagination, error::Error};
+use crate::{error::Error, pagination::Pagination};
 
 #[derive(Debug)]
 pub struct CustomResponse<T: Serialize> {
