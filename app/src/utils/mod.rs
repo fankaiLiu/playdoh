@@ -1,1 +1,2 @@
-pub mod rand_utils;
+pub mod jwt;
+pub use jwt::authorize;

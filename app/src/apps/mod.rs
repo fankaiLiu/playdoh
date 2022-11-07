@@ -1,5 +1,6 @@
-use axum::Router;
+use axum::{middleware, routing::post, Router};
 
+use crate::utils::jwt::Claims;
 
 pub mod system;
 
@@ -7,11 +8,16 @@ pub fn api() -> Router {
     Router::new()
         // 系统管理模块
         .nest("/system", auth_api())
+        .nest("/comm", no_auth_api())
+}
+
+//无需授权api
+pub fn no_auth_api() -> Router {
+    Router::new().route("/login", post(system::SysLogin)) // 登录
 }
 
 // 需要授权的api
 fn auth_api() -> Router {
-    
     // let router = match &CFG.log.enable_oper_log {
     //     true => router.layer(middleware::from_fn(oper_log_fn_mid)),
     //     false => router,
@@ -24,6 +30,6 @@ fn auth_api() -> Router {
     // router
     //     .layer(middleware::from_fn(auth_fn_mid))
     //     .layer(middleware::from_fn(ctx_fn_mid))
-    //     .layer(middleware::from_extractor::<Claims>())
-    system::system_api()
+    system::system_api().layer(middleware::from_extractor::<Claims>())
+    //system::system_api()
 }

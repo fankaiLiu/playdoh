@@ -1,12 +1,16 @@
 use crate::custom_response::ResultExt;
 use crate::Error;
 use crate::Result;
+use crate::utils;
+use crate::utils::jwt::AuthBody;
+use crate::utils::jwt::AuthPayload;
 use anyhow::Context;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash};
 use axum::{
     Json,
 };
+
 use sqlx::{Pool, Postgres};
 pub async fn create_user(
     db: &Pool<Postgres>,
@@ -47,10 +51,10 @@ pub async fn create_user(
     }))
 }
 
-pub async fn login_user(
+pub async fn login(
     db: &Pool<Postgres>,
     req: UserBody<LoginUser>,
-) -> Result<Json<UserBody<User>>> {
+) -> Result<AuthBody> {
     let user = sqlx::query!(
         r#"
             select user_id, email, username, bio, image, password_hash 
@@ -64,15 +68,14 @@ pub async fn login_user(
 
     verify_password(req.user.password, user.password_hash).await?;
 
-    Ok(Json(UserBody {
-        user: User {
-            email: user.email,
-            token: "token".to_string(),
-            username: user.username,
-            bio: user.bio,
-            image: user.image,
-        },
-    }))
+    let claims = AuthPayload {
+        user_id: user.user_id.to_string(),              
+        name: user.username.clone(),  
+    };
+    let token_id = scru128::new_string();
+    let token = utils::authorize(claims.clone(), token_id.clone()).await.unwrap();
+
+    Ok(token)
 }
 
 async fn hash_password(password: String) -> Result<String> {

@@ -6,7 +6,7 @@ use crate::{
         self,
         sys_user::{LoginUser, NewUser, User, UserBody},
     },
-    Result,
+    Result, utils::jwt::AuthBody,
 };
 pub async fn create(Json(req): Json<UserBody<NewUser>>) -> Result<String> {
     let db = DB.get_or_init(db_conn).await;
@@ -15,8 +15,8 @@ pub async fn create(Json(req): Json<UserBody<NewUser>>) -> Result<String> {
     Ok("ok".to_string())
 }
 
-pub async fn login_user(Json(req): Json<UserBody<LoginUser>>) -> Result<Json<UserBody<User>>> {
+pub async fn login(Json(req): Json<UserBody<LoginUser>>) -> Result<Json<AuthBody>> {
     let db = DB.get_or_init(db_conn).await;
-    let res = service::sys_user::login_user(db, req).await?;
-    Ok(res)
+    let res = service::sys_user::login(db, req).await?;
+    Ok(Json(res))
 }

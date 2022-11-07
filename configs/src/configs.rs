@@ -13,6 +13,15 @@ pub struct Configs {
 
     #[config(nested)]
     pub database: Database,
+    
+    #[config(nested)]
+    pub jwt: Jwt,
+}
+
+#[derive(Debug, Config)]
+pub struct Jwt {
+    pub jwt_secret: String,
+    pub jwt_exp: i64,
 }
 
 /// Configuring the HTTP server of our app.
@@ -43,7 +52,6 @@ pub struct LogConfig {
 
 #[derive(Debug, Config)]
 pub struct Database {
-    /// 数据库连接
     pub link: String,
     pub hmac_key: String,
 }
