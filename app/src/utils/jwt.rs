@@ -6,6 +6,7 @@ use axum::{
     Json,
 };
 use chrono::{Duration, Local};
+use db::{DB, db_conn};
 use jsonwebtoken::{
     decode, encode, errors::ErrorKind, DecodingKey, EncodingKey, Header, Validation,
 };
@@ -70,7 +71,9 @@ where
         let token_data = match decode::<Claims>(&token_v, &KEYS.decoding, &Validation::default()) {
             Ok(token) => {
                 let token_id = token.claims.token_id.clone();
-                let (x, _) = check_user_online(None, token_id.clone()).await;
+                let db = DB.get_or_init(db_conn).await;
+
+                let (x, _) = check_user_online(db, token_id.clone()).await;
                 print!("================================{}", token_id);
                 print!("================================{}", x);
                 if x {

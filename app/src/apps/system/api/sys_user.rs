@@ -4,7 +4,7 @@ use db::{db_conn, DB};
 use crate::{
     apps::system::service::{
         self,
-        sys_user::{LoginUser, NewUser, User, UserBody},
+        sys_user::{LoginUser, NewUser,  UserBody},
     },
     Result, utils::jwt::AuthBody,
 };

@@ -118,12 +118,17 @@ where
                 )];
 
                 let bytes = bytes.into_inner().freeze();
-                (self.status_code, headers, bytes).into_response()
+                let res_json_string = ResJsonString(String::from_utf8(bytes.to_vec()).unwrap());
+                let mut response = (self.status_code, headers, bytes).into_response();
+                response.extensions_mut().insert(res_json_string);
+                response
             }
         }
     }
 }
 
+#[derive(Debug)]
+pub struct ResJsonString(pub String);
 pub trait ResultExt<T> {
     /// If `self` contains a SQLx database constraint error with the given name,
     /// transform the error.

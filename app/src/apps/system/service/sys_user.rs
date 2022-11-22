@@ -11,11 +11,12 @@ use axum::{
     Json,
 };
 
+use sqlx::types::Uuid;
 use sqlx::{Pool, Postgres};
 pub async fn create_user(
     db: &Pool<Postgres>,
     req: UserBody<NewUser>,
-) -> Result<Json<UserBody<User>>> {
+) -> Result<Json<UserBody<CreateUser>>> {
     let password_hash = hash_password(req.user.password).await?;
 
     // I personally prefer using queries inline in request handlers as it's easier to understand the
@@ -40,7 +41,7 @@ pub async fn create_user(
     })?;
 
     Ok(Json(UserBody {
-        user: User {
+        user: CreateUser {
             email: req.user.email,
             // token: AuthUser { user_id }.to_jwt(&db),
             token: "token".to_string(),
@@ -76,6 +77,20 @@ pub async fn login(
     let token = utils::authorize(claims.clone(), token_id.clone()).await.unwrap();
 
     Ok(token)
+}
+pub async fn get_by_id(db: &Pool<Postgres>,u_id:&Uuid
+)->Result<User>
+{
+    let user = sqlx::query_as!(User,
+        r#"
+            select cast(user_id as varchar), email, username, bio, image 
+            from "user" where user_id = $1
+        "#,
+        u_id.clone(),
+    )
+    .fetch_optional(db)
+    .await?;
+    Ok(user.unwrap())
 }
 
 async fn hash_password(password: String) -> Result<String> {
@@ -121,13 +136,22 @@ pub struct NewUser {
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
-pub struct User {
+pub struct CreateUser {
     email: String,
     token: String,
     username: String,
     bio: String,
     image: Option<String>,
 }
+#[derive(serde::Deserialize)]
+pub struct User {
+    user_id:Option<String>,
+    pub email: String,
+    pub username: String,
+    bio: String,
+    image: Option<String>,
+}
+
 
 #[derive(serde::Deserialize)]
 pub struct LoginUser {
