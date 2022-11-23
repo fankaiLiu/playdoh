@@ -11,3 +11,5 @@ hmac_key="asd"
 [jwt]
 jwt_secret="se"
 jwt_exp=123123
+[system]
+user_agent_parser = "config/regexes.yaml"

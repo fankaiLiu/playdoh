@@ -16,6 +16,8 @@ pub struct Configs {
     
     #[config(nested)]
     pub jwt: Jwt,
+    #[config(nested)]
+    pub system: System,
 }
 
 #[derive(Debug, Config)]
@@ -54,4 +56,10 @@ pub struct LogConfig {
 pub struct Database {
     pub link: String,
     pub hmac_key: String,
+}
+
+#[derive(Debug, Config)]
+
+pub struct System {
+    pub user_agent_parser: String,
 }

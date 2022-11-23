@@ -1,22 +1,18 @@
 use crate::custom_response::ResultExt;
-use crate::Error;
-use crate::Result;
 use crate::utils;
 use crate::utils::jwt::AuthBody;
 use crate::utils::jwt::AuthPayload;
+use crate::Error;
+use crate::Result;
 use anyhow::Context;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash};
-use axum::{
-    Json,
-};
+use axum::Json;
 
+use hyper::HeaderMap;
 use sqlx::types::Uuid;
 use sqlx::{Pool, Postgres};
-pub async fn create_user(
-    db: &Pool<Postgres>,
-    req: UserBody<NewUser>,
-) -> Result<Json<UserBody<CreateUser>>> {
+pub async fn create_user(db: &Pool<Postgres>, req: UserBody<NewUser>) -> Result<CreateUser> {
     let password_hash = hash_password(req.user.password).await?;
 
     // I personally prefer using queries inline in request handlers as it's easier to understand the
@@ -40,22 +36,23 @@ pub async fn create_user(
         Error::unprocessable_entity([("email", "email taken")])
     })?;
 
-    Ok(Json(UserBody {
-        user: CreateUser {
-            email: req.user.email,
-            // token: AuthUser { user_id }.to_jwt(&db),
-            token: "token".to_string(),
-            username: req.user.username,
-            bio: "".to_string(),
-            image: None,
-        },
-    }))
+    Ok(CreateUser {
+        email: req.user.email,
+        // token: AuthUser { user_id }.to_jwt(&db),
+        token: "token".to_string(),
+        username: req.user.username,
+        bio: "".to_string(),
+        image: None,
+    })
 }
 
 pub async fn login(
     db: &Pool<Postgres>,
     req: UserBody<LoginUser>,
+    header: HeaderMap,
 ) -> Result<AuthBody> {
+    let mut msg = "登录成功".to_string();
+    let mut status = "1".to_string();
     let user = sqlx::query!(
         r#"
             select user_id, email, username, bio, image, password_hash 
@@ -70,18 +67,28 @@ pub async fn login(
     verify_password(req.user.password, user.password_hash).await?;
 
     let claims = AuthPayload {
-        user_id: user.user_id.to_string(),              
-        name: user.username.clone(),  
+        user_id: user.user_id.to_string(),
+        name: user.username.clone(),
     };
     let token_id = scru128::new_string();
-    let token = utils::authorize(claims.clone(), token_id.clone()).await.unwrap();
-
+    let token = utils::authorize(claims.clone(), token_id.clone())
+        .await
+        .unwrap();
+    set_login_info(
+        header,
+        user.user_id.to_string(),
+        user.username.clone(),
+        msg.clone(),
+        status.clone(),
+        Some(token_id),
+        Some(token.clone()),
+    )
+    .await;
     Ok(token)
 }
-pub async fn get_by_id(db: &Pool<Postgres>,u_id:&Uuid
-)->Result<User>
-{
-    let user = sqlx::query_as!(User,
+pub async fn get_by_id(db: &Pool<Postgres>, u_id: &Uuid) -> Result<User> {
+    let user = sqlx::query_as!(
+        User,
         r#"
             select cast(user_id as varchar), email, username, bio, image 
             from "user" where user_id = $1
@@ -123,6 +130,30 @@ async fn verify_password(password: String, password_hash: String) -> Result<()> 
     .context("panic in verifying password hash")?
 }
 
+pub async fn set_login_info(
+    header: HeaderMap,
+    u_id: String,
+    user: String,
+    msg: String,
+    status: String,
+    token_id: Option<String>,
+    token: Option<AuthBody>,
+) {
+    let u = utils::get_client_info(header).await;
+    // 写入登录日志
+    let u2 = u.clone();
+    let status2 = status.clone();
+    // 如果成功，写入在线日志
+    if status == "1" {
+        if let (Some(token_id), Some(token)) = (token_id, token) {
+            super::sys_user_online::add(u, u_id, token_id, token.clone().exp).await;
+        }
+    };
+    // tokio::spawn(async move {
+    //     super::sys_login_log::add(u2, user, msg, status2).await;
+    // });
+}
+
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct UserBody<T> {
     user: T,
@@ -145,13 +176,12 @@ pub struct CreateUser {
 }
 #[derive(serde::Deserialize)]
 pub struct User {
-    user_id:Option<String>,
+    user_id: Option<String>,
     pub email: String,
     pub username: String,
     bio: String,
     image: Option<String>,
 }
-
 
 #[derive(serde::Deserialize)]
 pub struct LoginUser {

@@ -32,5 +32,8 @@ chrono = "0.4.22"
 scru128 = "2.2.0"
 hyper = { version = "0.14", features = ["full"] }
 ahash = "0.8.1"
+headers = "0.3.8"
+reqwest = "0.11.13"
+user-agent-parser = "0.3.4"
 #uuid = { version = "0.8", features = ["serde"] }
 

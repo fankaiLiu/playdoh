@@ -43,7 +43,7 @@ where
     pub fn new() -> Self {
         Self::default()
     }
-
+    
     pub fn body(mut self, body: T) -> Self {
         self.body = Some(body);
         self

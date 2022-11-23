@@ -105,8 +105,6 @@ pub async fn oper_log_add_fn(
     let duration_data = duration;
     tokio::spawn(async move {
         file_log(req_data, now, duration_data, res_data, err_msg_data);
-        dbg!(1);
-
         match db_log(
             duration_data,
             ctx,
@@ -220,7 +218,7 @@ async fn db_log(
         ctx.method,
         operator_type,
         user.user_name,
-        user.dept_name,
+        "default",
         ctx.path,
         user.net,
         "",

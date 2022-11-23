@@ -79,6 +79,7 @@ where
                 if x {
                     token
                 } else {
+                    dbg!(1);
                     return Err(AuthError::CheckOutToken);
                 }
             }
