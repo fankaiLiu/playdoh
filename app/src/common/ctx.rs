@@ -1,4 +1,4 @@
-use crate::{ utils::jwt::UserInfo};
+use crate::utils::jwt::UserInfo;
 #[derive(Clone, Debug, Default)]
 pub struct ReqCtx {
     pub ori_uri: String,

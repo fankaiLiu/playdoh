@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use ahash::AHashMap as HashMap;
- 
+
 use once_cell::sync::Lazy;
 use tokio::sync::Mutex;
 use tracing::info;
 
-use crate::{common::ctx::ApiInfo};
+use crate::common::ctx::ApiInfo;
 
 pub static ALL_APIS: Lazy<Arc<Mutex<HashMap<String, ApiInfo>>>> = Lazy::new(|| {
     let apis: HashMap<String, ApiInfo> = HashMap::new();

@@ -2,9 +2,7 @@ use std::net::SocketAddr;
 
 use app::apps;
 use app::starting::{self};
-use axum::{
-    Router,
-};
+use axum::Router;
 use configs::CFG;
 use db::{db_conn, DB};
 use tracing_subscriber::{fmt, layer::SubscriberExt, EnvFilter, Registry};

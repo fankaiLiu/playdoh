@@ -13,7 +13,7 @@ pub struct Configs {
 
     #[config(nested)]
     pub database: Database,
-    
+
     #[config(nested)]
     pub jwt: Jwt,
     #[config(nested)]

@@ -1,13 +1,15 @@
-use axum::{Json};
+use axum::Json;
 use db::{db_conn, DB};
 use headers::HeaderMap;
 
 use crate::{
     apps::system::service::{
         self,
-        sys_user::{LoginUser, NewUser,  UserBody, CreateUser},
+        sys_user::{CreateUser, LoginUser, NewUser, UserBody},
     },
-    Result, utils::jwt::AuthBody, custom_response::{CustomResponseBuilder, CustomResponse}, ResponseResult,
+    custom_response::{CustomResponse, CustomResponseBuilder},
+    utils::jwt::AuthBody,
+    ResponseResult, Result,
 };
 pub async fn create(Json(req): Json<UserBody<NewUser>>) -> ResponseResult<CreateUser> {
     let db = DB.get_or_init(db_conn).await;
@@ -15,8 +17,11 @@ pub async fn create(Json(req): Json<UserBody<NewUser>>) -> ResponseResult<Create
     Ok(CustomResponseBuilder::new().body(res).build())
 }
 
-pub async fn login(Json(req): Json<UserBody<LoginUser>>,header: HeaderMap) ->  Result<CustomResponse<AuthBody>> {
+pub async fn login(
+    Json(req): Json<UserBody<LoginUser>>,
+    header: HeaderMap,
+) -> Result<CustomResponse<AuthBody>> {
     let db = DB.get_or_init(db_conn).await;
-    let res = service::sys_user::login(db, req,header).await?;
+    let res = service::sys_user::login(db, req, header).await?;
     Ok(CustomResponseBuilder::new().body(res).build())
 }

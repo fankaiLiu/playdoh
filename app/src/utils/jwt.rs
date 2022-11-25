@@ -6,7 +6,7 @@ use axum::{
     Json,
 };
 use chrono::{Duration, Local};
-use db::{DB, db_conn};
+use db::{db_conn, DB};
 use jsonwebtoken::{
     decode, encode, errors::ErrorKind, DecodingKey, EncodingKey, Header, Validation,
 };

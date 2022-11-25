@@ -16,7 +16,11 @@ pub async fn ctx_fn_mid(
     next: Next<Body>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     // 请求信息ctx注入
-    let user_info=&req.extensions().get::<UserInfo>().expect("user_info is none").clone();
+    let user_info = &req
+        .extensions()
+        .get::<UserInfo>()
+        .expect("user_info is none")
+        .clone();
 
     let ori_uri_path = if let Some(path) = req.extensions().get::<OriginalUri>() {
         path.0.path().to_owned()

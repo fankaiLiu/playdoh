@@ -4,7 +4,7 @@ use configs::CFG;
 use headers::HeaderMap;
 use user_agent_parser::UserAgentParser;
 
-use crate::common::client::{ClientInfo, UserAgentInfo, ClientNetInfo};
+use crate::common::client::{ClientInfo, ClientNetInfo, UserAgentInfo};
 
 pub async fn get_client_info(header: HeaderMap) -> ClientInfo {
     // 改为 header 中获取
@@ -35,8 +35,16 @@ pub fn get_user_agent_info(user_agent: &str) -> UserAgentInfo {
     let product_v = ua_parser.parse_product(user_agent);
     let os_v = ua_parser.parse_os(user_agent);
     let device_v = ua_parser.parse_device(user_agent);
-    let browser = product_v.name.unwrap_or(Cow::Borrowed("")).to_string() + " " + product_v.major.unwrap_or(Cow::Borrowed("")).to_string().as_str();
-    let os = os_v.name.unwrap_or(Cow::Borrowed("")).to_string() + " " + os_v.major.unwrap_or(Cow::Borrowed("")).to_string().as_str();
+    let browser = product_v.name.unwrap_or(Cow::Borrowed("")).to_string()
+        + " "
+        + product_v
+            .major
+            .unwrap_or(Cow::Borrowed(""))
+            .to_string()
+            .as_str();
+    let os = os_v.name.unwrap_or(Cow::Borrowed("")).to_string()
+        + " "
+        + os_v.major.unwrap_or(Cow::Borrowed("")).to_string().as_str();
     let device = device_v.name.unwrap_or(Cow::Borrowed("")).to_string();
     UserAgentInfo {
         browser: browser.trim().to_string(),
@@ -47,7 +55,10 @@ pub fn get_user_agent_info(user_agent: &str) -> UserAgentInfo {
 
 async fn get_city_by_ip(ip: &str) -> Result<ClientNetInfo, Box<dyn std::error::Error>> {
     let url = "http://whois.pconline.com.cn/ipJson.jsp?json=true&ip=".to_string() + ip;
-    let resp = reqwest::get(url.as_str()).await?.text_with_charset("utf-8").await?;
+    let resp = reqwest::get(url.as_str())
+        .await?
+        .text_with_charset("utf-8")
+        .await?;
     let res = serde_json::from_str::<HashMap<String, String>>(resp.as_str())?;
     let location = format!("{}{}", res["pro"], res["city"]);
     let net_work = res["addr"].split(' ').collect::<Vec<&str>>()[1].to_string();

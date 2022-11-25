@@ -8,7 +8,6 @@ const CFG_FILE: &str = "config/config.toml";
 pub static CFG: Lazy<Configs> = Lazy::new(self::Configs::init);
 impl Configs {
     pub fn init() -> Self {
-        
         Configs::builder()
             .env()
             .file(CFG_FILE)

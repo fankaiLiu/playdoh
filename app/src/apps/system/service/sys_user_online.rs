@@ -1,11 +1,10 @@
-use db::{DB, db_conn};
-use sqlx::{Pool, Postgres, types::Uuid};
-use anyhow::{Result};
+use anyhow::Result;
+use db::{db_conn, DB};
+use sqlx::{types::Uuid, Pool, Postgres};
 use time::OffsetDateTime;
 
 use crate::common::client::ClientInfo;
 
- 
 // /// delete 完全删除
 // pub async fn delete(db: &DatabaseConnection, delete_req: DeleteReq) -> Result<String> {
 //     let mut s = SysUserOnline::delete_many();
@@ -21,10 +20,9 @@ use crate::common::client::ClientInfo;
 //     }
 // }
 
-
-pub async fn check_online( db: &Pool<Postgres>,
-     token_id: String) -> (bool, Option<SysUserOnline>) {
-    let sys_user_online= sqlx::query_as!(SysUserOnline,
+pub async fn check_online(db: &Pool<Postgres>, token_id: String) -> (bool, Option<SysUserOnline>) {
+    let sys_user_online = sqlx::query_as!(
+        SysUserOnline,
         r#"
         SELECT 
             id,
@@ -42,23 +40,30 @@ pub async fn check_online( db: &Pool<Postgres>,
             os
         FROM "sys_oper_online" WHERE token_id = $1"#,
         token_id,
-    ).fetch_optional(db).await.unwrap();
+    )
+    .fetch_optional(db)
+    .await
+    .unwrap();
     (sys_user_online.is_some(), sys_user_online)
 }
 
-pub async fn log_out( db: &Pool<Postgres>, token_id: String) -> Result<String> {
+pub async fn log_out(db: &Pool<Postgres>, token_id: String) -> Result<String> {
     sqlx::query!(
         r#"
         DELETE FROM "sys_oper_online" WHERE token_id = $1"#,
         token_id,
-    ).execute(db).await?;
+    )
+    .execute(db)
+    .await?;
     Ok("成功退出登录".to_string())
 }
 
-pub async fn add( req: ClientInfo, u_id: String, token_id: String, token_exp: i64) {
+pub async fn add(req: ClientInfo, u_id: String, token_id: String, token_exp: i64) {
     let db = DB.get_or_init(db_conn).await;
     let u_id = Uuid::parse_str(&u_id).unwrap();
-    let user = super::sys_user::get_by_id(db, &u_id).await.expect("获取用户信息失败");
+    let user = super::sys_user::get_by_id(db, &u_id)
+        .await
+        .expect("获取用户信息失败");
     //let dept = super::sys_dept::get_by_id(db, &user.clone().user.dept_id).await.expect("获取部门信息失败");
     let _id = sqlx::query_scalar!(
         // language=PostgreSQL
@@ -87,7 +92,9 @@ pub async fn update_online(token_id: String, token_exp: i64) -> Result<String> {
         UPDATE "sys_oper_online" SET token_exp = $1 WHERE token_id = $2"#,
         token_exp,
         token_id,
-    ).execute(db).await?;
+    )
+    .execute(db)
+    .await?;
     Ok("token更新成功".to_string())
 }
 
