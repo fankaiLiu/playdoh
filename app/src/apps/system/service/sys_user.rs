@@ -7,7 +7,7 @@ use crate::Result;
 use anyhow::Context;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash};
-use axum::Json;
+
 
 use hyper::HeaderMap;
 use sqlx::types::Uuid;
@@ -51,8 +51,8 @@ pub async fn login(
     req: UserBody<LoginUser>,
     header: HeaderMap,
 ) -> Result<AuthBody> {
-    let mut msg = "登录成功".to_string();
-    let mut status = "1".to_string();
+    let msg = "登录成功".to_string();
+    let status = "1".to_string();
     let user = sqlx::query!(
         r#"
             select user_id, email, username, bio, image, password_hash 
@@ -133,16 +133,16 @@ async fn verify_password(password: String, password_hash: String) -> Result<()> 
 pub async fn set_login_info(
     header: HeaderMap,
     u_id: String,
-    user: String,
-    msg: String,
+    _user: String,
+    _msg: String,
     status: String,
     token_id: Option<String>,
     token: Option<AuthBody>,
 ) {
     let u = utils::get_client_info(header).await;
     // 写入登录日志
-    let u2 = u.clone();
-    let status2 = status.clone();
+    let _u2 = u.clone();
+    let _status2 = status.clone();
     // 如果成功，写入在线日志
     if status == "1" {
         if let (Some(token_id), Some(token)) = (token_id, token) {

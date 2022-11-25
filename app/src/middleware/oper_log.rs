@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use axum::{body::Body, http::Request, middleware::Next, response::IntoResponse};
 use chrono::Local;
-use configs::CFG;
+
 use db::{db_conn, DB};
 // use db::{
 //     common::{
@@ -92,7 +92,7 @@ pub async fn oper_log_add_fn(
     //     return Ok(());
     // }
     let apis = ALL_APIS.lock().await;
-    let (api_name, is_log) = match apis.get(&ctx.path) {
+    let (api_name, _is_log) = match apis.get(&ctx.path) {
         Some(x) => (x.name.clone(), x.log_method.clone()),
         None => ("".to_string(), "0".to_string()),
     };
@@ -185,7 +185,7 @@ async fn db_log(
     duration: Duration,
     ctx: ReqCtx,
     ctx_user: UserInfo,
-    now: chrono::NaiveDateTime,
+    _now: chrono::NaiveDateTime,
     api_name: String,
     res: String,
     status: String,
