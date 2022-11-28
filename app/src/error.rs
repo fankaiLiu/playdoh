@@ -7,6 +7,7 @@ use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde_json::json;
 use sqlx::error::DatabaseError;
+use sqlx::types::uuid;
 use tokio::task::JoinError;
 use tracing::log;
 
@@ -23,6 +24,8 @@ pub enum Error {
     BadRequest(#[from] BadRequest),
     #[error("an error occurred with the database,{0}")]
     Sqlx(#[from] sqlx::Error),
+    #[error("an error occurred with the uuid,{0}")]
+    Uuid(#[from] uuid::Error),
     #[error("an internal server error occurred")]
     Anyhow(#[from] anyhow::Error),
     /// Return `401 Unauthorized`
@@ -74,6 +77,7 @@ impl Error {
             Error::Unauthorized => (StatusCode::UNAUTHORIZED, 40003),
             Error::Forbidden => (StatusCode::FORBIDDEN, 40003),
             Error::UnprocessableEntity { .. } => (StatusCode::UNPROCESSABLE_ENTITY, 40003),
+            Error::Uuid(_) => (StatusCode::BAD_REQUEST, 40003),
         }
     }
     /// Convenient constructor for `Error::UnprocessableEntity`.

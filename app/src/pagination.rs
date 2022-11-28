@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::request_query::RequestQuery;
+use crate::request_query::PageTurn;
 
 const LIMIT: u64 = 100;
 const OFFSET: u64 = 0;
@@ -13,7 +13,7 @@ pub struct Pagination {
 }
 
 impl Pagination {
-    pub fn build_from_request_query(query: RequestQuery) -> PaginationBuilder {
+    pub fn build_from_request_query(query: PageTurn) -> PaginationBuilder {
         let limit = query
             .limit
             // Make sure the requested limit is not greater than the maximum allowed

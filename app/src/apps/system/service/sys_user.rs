@@ -1,4 +1,7 @@
 use crate::custom_response::ResultExt;
+use crate::request_query::Page;
+use crate::request_query::PageTurnReq;
+use crate::request_query::PageTurnResponse;
 use crate::utils;
 use crate::utils::jwt::AuthBody;
 use crate::utils::jwt::AuthPayload;
@@ -7,13 +10,14 @@ use crate::Result;
 use anyhow::Context;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash};
-
+use async_trait::async_trait;
 
 use hyper::HeaderMap;
+use serde::Serialize;
 use sqlx::types::Uuid;
 use sqlx::{Pool, Postgres};
-pub async fn create_user(db: &Pool<Postgres>, req: UserBody<NewUser>) -> Result<CreateUser> {
-    let password_hash = hash_password(req.user.password).await?;
+pub async fn create_user(db: &Pool<Postgres>, req: NewUser) -> Result<CreateUser> {
+    let password_hash = hash_password(req.password).await?;
 
     // I personally prefer using queries inline in request handlers as it's easier to understand the
     // query's semantics in the wider context of where it's invoked.
@@ -23,8 +27,8 @@ pub async fn create_user(db: &Pool<Postgres>, req: UserBody<NewUser>) -> Result<
     let _user_id = sqlx::query_scalar!(
         // language=PostgreSQL
         r#"insert into "user" (username, email, password_hash) values ($1, $2, $3) returning user_id"#,
-        req.user.username,
-        req.user.email,
+        req.username,
+        req.email,
         password_hash
     )
     .fetch_one(db)
@@ -37,20 +41,50 @@ pub async fn create_user(db: &Pool<Postgres>, req: UserBody<NewUser>) -> Result<
     })?;
 
     Ok(CreateUser {
-        email: req.user.email,
+        email: req.email,
         // token: AuthUser { user_id }.to_jwt(&db),
         token: "token".to_string(),
-        username: req.user.username,
+        username: req.username,
         bio: "".to_string(),
         image: None,
     })
 }
 
-pub async fn login(
-    db: &Pool<Postgres>,
-    req: UserBody<LoginUser>,
-    header: HeaderMap,
-) -> Result<AuthBody> {
+pub async fn update_user(db: &Pool<Postgres>, req: UpdateUser) -> Result<String> {
+    let user_id = Uuid::parse_str(&req.id)?;
+    let user_id = sqlx::query_scalar!(
+        // language=PostgreSQL
+        r#"update "user" set username = $1, email = $2, bio = $3, image = $4 where user_id = $5 returning user_id"#,
+        req.username,
+        req.email,
+        req.bio,
+        req.image,
+        user_id
+    )
+    .fetch_one(db)
+    .await
+    .on_constraint("user_username_key", |_| {
+        Error::unprocessable_entity([("username", "username taken")])
+    })
+    .on_constraint("user_email_key", |_| {
+        Error::unprocessable_entity([("email", "email taken")])
+    })?;
+    Ok("ok".to_string())
+}
+
+pub async fn delete(db: &Pool<Postgres>, id: String) -> Result<String> {
+    let user_id = Uuid::parse_str(&id)?;
+    let _user_id = sqlx::query_scalar!(
+        // language=PostgreSQL
+        r#"delete from "user" where user_id = $1 returning user_id"#,
+        user_id
+    )
+    .fetch_one(db)
+    .await?;
+    Ok("ok".to_string())
+}
+
+pub async fn login(db: &Pool<Postgres>, req: LoginUser, header: HeaderMap) -> Result<AuthBody> {
     let msg = "登录成功".to_string();
     let status = "1".to_string();
     let user = sqlx::query!(
@@ -58,13 +92,13 @@ pub async fn login(
             select user_id, email, username, bio, image, password_hash 
             from "user" where email = $1
         "#,
-        req.user.email,
+        req.email,
     )
     .fetch_optional(db)
     .await?
     .ok_or(Error::unprocessable_entity([("email", "does not exist")]))?;
 
-    verify_password(req.user.password, user.password_hash).await?;
+    verify_password(req.password, user.password_hash).await?;
 
     let claims = AuthPayload {
         user_id: user.user_id.to_string(),
@@ -153,10 +187,29 @@ pub async fn set_login_info(
     //     super::sys_login_log::add(u2, user, msg, status2).await;
     // });
 }
+#[derive(serde::Deserialize)]
+pub struct SearchResult {
+    pub username: String,
+    pub email: String,
+}
+#[derive(serde::Deserialize)]
+pub struct OrdersRequest {}
+pub struct UserPageClient {}
 
-#[derive(serde::Serialize, serde::Deserialize)]
-pub struct UserBody<T> {
-    user: T,
+impl UserPageClient {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+pub type UserRequest = PageTurnReq<SearchResult, OrdersRequest>;
+pub type UserPageResponse = PageTurnResponse<User>;
+
+#[async_trait]
+impl Page<UserRequest, UserPageResponse> for UserPageClient {
+    async fn page(&self, req: UserRequest) -> Result<UserPageResponse> {
+    return Ok(UserPageResponse::new(req.page_turn, vec![]));
+    }
 }
 
 #[derive(serde::Deserialize)]
@@ -164,6 +217,16 @@ pub struct NewUser {
     username: String,
     email: String,
     password: String,
+}
+
+#[derive(serde::Deserialize)]
+pub struct UpdateUser {
+    id: String,
+    username: String,
+    email: String,
+    password: String,
+    bio: String,
+    image: Option<String>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -174,7 +237,7 @@ pub struct CreateUser {
     bio: String,
     image: Option<String>,
 }
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Serialize)]
 pub struct User {
     user_id: Option<String>,
     pub email: String,
