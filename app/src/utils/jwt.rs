@@ -1,9 +1,9 @@
 use axum::{
-    extract::{FromRequest, RequestParts, TypedHeader},
+    extract::{FromRequest, TypedHeader, FromRequestParts},
     headers::{authorization::Bearer, Authorization},
-    http::StatusCode,
+    http::{StatusCode, request::Parts},
     response::{IntoResponse, Response},
-    Json,
+    Json, RequestPartsExt,
 };
 use chrono::{Duration, Local};
 use db::{db_conn, DB};
@@ -58,13 +58,13 @@ pub struct UserInfo {
 }
 
 #[axum::async_trait]
-impl<B> FromRequest<B> for Claims
+impl<S> FromRequestParts<S> for Claims
 where
-    B: Send,
+S: Send + Sync,
 {
     type Rejection = AuthError;
     /// 将用户信息注入request
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(req:&mut Parts,_state: &S) -> Result<Self, Self::Rejection> {
         let (_, token_v) = get_bear_token(req).await?;
         // Decode the user data
 
@@ -96,7 +96,7 @@ where
             },
         };
         let user = token_data.claims;
-        req.extensions_mut().insert(UserInfo {
+        req.extensions.insert(UserInfo {
             id: user.id.clone(),
             token_id: user.token_id.clone(),
             name: user.name.clone(),
@@ -105,14 +105,13 @@ where
     }
 }
 
-pub async fn get_bear_token<B>(req: &mut RequestParts<B>) -> Result<(String, String), AuthError>
+pub async fn get_bear_token(parts: &mut Parts) -> Result<(String, String), AuthError>
 where
-    B: Send,
 {
-    let TypedHeader(Authorization(bearer)) =
-        TypedHeader::<Authorization<Bearer>>::from_request(req)
-            .await
-            .map_err(|_| AuthError::InvalidToken)?;
+    let TypedHeader(Authorization(bearer)) = parts
+    .extract::<TypedHeader<Authorization<Bearer>>>()
+    .await
+    .map_err(|_| AuthError::InvalidToken)?;
     // Decode the user data
     let bearer_data = bearer.token();
     let cut = bearer_data.len() - scru128::new_string().len();

@@ -36,8 +36,8 @@ pub async fn list(Json(request): Json<UserRequest> )-> ResponseResult<UserPageRe
 }
 
 pub async fn login(
-    Json(req): Json<LoginUser>,
     header: HeaderMap,
+    Json(req): Json<LoginUser>,
 ) -> Result<CustomResponse<AuthBody>> {
     let db = DB.get_or_init(db_conn).await;
     let res = service::sys_user::login(db, req, header).await?;
