@@ -1,15 +1,13 @@
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-use crate::pagination::Pagination;
 use crate::Result;
 /// This struct is used to represent the query parameters that are sent to the
 /// server endpoints for pagination.
 #[derive(Debug, Deserialize)]
 pub struct PageTurn {
-    pub from: Option<String>,
-    pub offset: Option<u64>,
-    pub limit: Option<u64>,
+    pub offset: Option<i64>,
+    pub limit: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -20,16 +18,15 @@ pub struct PageTurnReq<T, U> {
 }
 #[derive(Debug, Serialize)]
 pub struct PageTurnResponse<T> {
-    pub pagination: Pagination,
+    pub total_count: i64,
     pub data: Vec<T>,
 }
 
 impl<T> PageTurnResponse<T>
 {
-    pub fn new(page_turner: PageTurn, data: Vec<T>) -> Self {
-        let pagination = Pagination::build_from_request_query(page_turner).count(1).build();
+    pub fn new(total_count: i64, data: Vec<T>) -> Self {
         Self {
-            pagination,
+            total_count,
             data,
         }
     }   

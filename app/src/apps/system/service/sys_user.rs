@@ -1,4 +1,5 @@
 use crate::custom_response::ResultExt;
+use crate::pagination::Pagination;
 use crate::request_query::Page;
 use crate::request_query::PageTurnReq;
 use crate::request_query::PageTurnResponse;
@@ -12,6 +13,8 @@ use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash};
 use async_trait::async_trait;
 
+use db::DB;
+use db::db_conn;
 use hyper::HeaderMap;
 use serde::Serialize;
 use sqlx::types::Uuid;
@@ -208,7 +211,21 @@ pub type UserPageResponse = PageTurnResponse<User>;
 #[async_trait]
 impl Page<UserRequest, UserPageResponse> for UserPageClient {
     async fn page(&self, req: UserRequest) -> Result<UserPageResponse> {
-    return Ok(UserPageResponse::new(req.page_turn, vec![]));
+    let db = DB.get_or_init(db_conn).await;
+    let pagination = Pagination::build_from_request_query(req.page_turn).count(1).build();
+    //Paging queries
+    let users = sqlx::query_as!(
+        User,
+        r#"select cast(user_id as varchar), email, username, bio, image from "user" order by user_id limit $1 offset $2"#,
+        pagination.limit,
+        pagination.offset,
+    ).fetch_all(db).await?;
+    //Query the total number of
+    let tatal_count= sqlx::query_scalar!(
+        r#"select count(*) from "user""#,
+    ).fetch_one(db).await?.unwrap_or(0);
+    
+    return Ok(UserPageResponse::new(tatal_count, users));
     }
 }
 

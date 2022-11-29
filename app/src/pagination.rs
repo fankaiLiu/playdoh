@@ -2,14 +2,14 @@ use serde::Serialize;
 
 use crate::request_query::PageTurn;
 
-const LIMIT: u64 = 100;
-const OFFSET: u64 = 0;
+const LIMIT: i64 = 100;
+const OFFSET: i64 = 0;
 
 #[derive(Debug, Serialize)]
 pub struct Pagination {
-    pub count: u64,
-    pub offset: u64,
-    pub limit: u64,
+    pub count: i64,
+    pub offset: i64,
+    pub limit: i64,
 }
 
 impl Pagination {
@@ -32,9 +32,9 @@ impl Pagination {
 }
 
 pub struct PaginationBuilder {
-    pub count: Option<u64>,
-    pub offset: u64,
-    pub limit: u64,
+    pub count: Option<i64>,
+    pub offset: i64,
+    pub limit: i64,
 }
 
 impl Default for PaginationBuilder {
@@ -48,7 +48,7 @@ impl Default for PaginationBuilder {
 }
 
 impl PaginationBuilder {
-    pub fn count(mut self, count: u64) -> Self {
+    pub fn count(mut self, count: i64) -> Self {
         self.count = Some(count);
         self
     }
@@ -61,3 +61,5 @@ impl PaginationBuilder {
         }
     }
 }
+
+  
