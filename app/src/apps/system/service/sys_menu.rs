@@ -1,9 +1,15 @@
-use crate::{Result, ResponseResult};
+use crate::{Result, ResponseResult, custom_response::CustomResponseBuilder};
+use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use sqlx::{types::Uuid, Pool, Postgres};
 
-pub async fn create(db: &Pool<Postgres>, req: AddReq) -> Result<String> {
+pub async fn create(db: &Pool<Postgres>, req: AddReq) -> ResponseResult<String> {
     let pid = Uuid::parse_str(&req.pid)?;
+    let exist=check_router_is_exist_add(db, req.clone()).await?;
+    if exist{
+        let result =CustomResponseBuilder::new().status_code(StatusCode::BAD_REQUEST).body("路由已存在".to_string()).build();
+        return Ok(result);
+    }
     let _id = sqlx::query_scalar!(
         // language=PostgreSQL
         r#"INSERT INTO public.sys_menu(
@@ -31,15 +37,12 @@ pub async fn create(db: &Pool<Postgres>, req: AddReq) -> Result<String> {
     )
     .fetch_one(db)
     .await?;
-    Ok("ok".to_string())
+    Ok(CustomResponseBuilder::new().body("添加成功".to_string()).build())
 }
 
 pub async fn update(db: &Pool<Postgres>, req: UpdateReq) -> ResponseResult<String> {
     let id = Uuid::parse_str(&req.id)?;
     let pid = Uuid::parse_str(&req.pid)?;
-    let exist=check_router_is_exist_add(db, req.clone()).await?;
-    if exist{
-    }
     sqlx::query!(
         // language=PostgreSQL
         r#"UPDATE public.sys_menu
@@ -68,10 +71,10 @@ pub async fn update(db: &Pool<Postgres>, req: UpdateReq) -> ResponseResult<Strin
     )
     .execute(db)
     .await?;
-    Ok("ok".to_string())
+    Ok(CustomResponseBuilder::new().body("ok".to_string()).build())
 }
 
-async fn check_router_is_exist_add(db: &Pool<Postgres>, req: UpdateReq) -> Result<bool> {
+async fn check_router_is_exist_add(db: &Pool<Postgres>, req: AddReq) -> Result<bool> {
     let pid=Uuid::parse_str(&req.pid)?;
     let count1 = sqlx::query_scalar!(
         // language=PostgreSQL
