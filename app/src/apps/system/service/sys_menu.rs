@@ -1,14 +1,15 @@
-use crate::{Result, ResponseResult, custom_response::CustomResponseBuilder};
+use crate::{custom_response::CustomResponseBuilder, utils};
+use anyhow::anyhow;
+use anyhow::Result;
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use sqlx::{types::Uuid, Pool, Postgres};
 
-pub async fn create(db: &Pool<Postgres>, req: AddReq) -> ResponseResult<String> {
+pub async fn create(db: &Pool<Postgres>, req: AddReq) -> Result<String> {
     let pid = Uuid::parse_str(&req.pid)?;
-    let exist=check_router_is_exist_add(db, req.clone()).await?;
-    if exist{
-        let result =CustomResponseBuilder::new().status_code(StatusCode::BAD_REQUEST).body("路由已存在".to_string()).build();
-        return Ok(result);
+    let exist = check_router_is_exist_add(db, req.clone()).await?;
+    if exist {
+        return Err(anyhow!("路由已存在"));
     }
     let _id = sqlx::query_scalar!(
         // language=PostgreSQL
@@ -37,12 +38,27 @@ pub async fn create(db: &Pool<Postgres>, req: AddReq) -> ResponseResult<String> 
     )
     .fetch_one(db)
     .await?;
-    Ok(CustomResponseBuilder::new().body("添加成功".to_string()).build())
+    Ok("添加成功".to_string())
 }
 
-pub async fn update(db: &Pool<Postgres>, req: UpdateReq) -> ResponseResult<String> {
+pub async fn update(db: &Pool<Postgres>, req: UpdateReq) -> Result<String> {
+    if check_router_is_exist_update(db, req.clone()).await? {
+        return Err(anyhow!("路径或者名称重复"));
+    }
     let id = Uuid::parse_str(&req.id)?;
     let pid = Uuid::parse_str(&req.pid)?;
+    //Check if the route exists
+    let exist = sqlx::query!(
+        // language=PostgreSQL
+        r#"select  id from public.sys_menu where id = $1 limit 1"#,
+        id
+    )
+    .fetch_optional(db)
+    .await?;
+    if exist.is_none() {
+        return Err(anyhow!("路由不存在"));
+
+    }
     sqlx::query!(
         // language=PostgreSQL
         r#"UPDATE public.sys_menu
@@ -71,25 +87,125 @@ pub async fn update(db: &Pool<Postgres>, req: UpdateReq) -> ResponseResult<Strin
     )
     .execute(db)
     .await?;
-    Ok(CustomResponseBuilder::new().body("ok".to_string()).build())
+    Ok("修改成功".to_string())
 }
 
+pub async fn delete(db: &Pool<Postgres>, id: &str) -> Result<String> {
+    let id = Uuid::parse_str(id)?;
+    let count = sqlx::query_scalar!(
+        // language=PostgreSQL
+        r#"select api from public.sys_menu where pid = $1"#,
+        id
+    )
+    .fetch_optional(db)
+    .await?;
+    match count {
+        Some(api) => {
+            let mut txn = db.begin().await?;
+            sqlx::query!(
+                // language=PostgreSQL
+                r#"delete from public.sys_menu where id = $1"#,
+                id
+            )
+            .execute(&mut txn)
+            .await?;
+            utils::ApiUtils::remove_api(&api).await;
+            txn.commit().await?;
+            Ok("删除成功".to_string())
+        }
+        None => {
+            let result = CustomResponseBuilder::new()
+                .status_code(StatusCode::BAD_REQUEST)
+                .body("路由不存在".to_string())
+                .build();
+            return Err(anyhow!("请求参数错误"));
+        }
+    }
+}
+/// 更新日志和缓存方法
+pub async fn update_log_cache_method(db: &Pool<Postgres>, req: LogCacheEditReq) -> Result<String> {
+    let id = Uuid::parse_str(&req.id)?;
+    sqlx::query!(
+        // language=PostgreSQL
+        r#"UPDATE public.sys_menu
+        SET log_method=$1, data_cache_method=$2
+        WHERE id=$3"#,
+        req.log_method,
+        req.data_cache_method,
+        id,
+    )
+    .fetch_one(db)
+    .await?;
+    Ok("更新成功".to_string())
+}
+
+// pub async fn get_by_id(db: &Pool<Postgres>, search_req: SearchReq) -> Result<MenuResp> {
+//     let mut s = SysMenu::find();
+//     s = s.filter(sys_menu::Column::DeletedAt.is_null());
+//     //
+//     if let Some(x) = search_req.id {
+//         s = s.filter(sys_menu::Column::Id.eq(x));
+//     } else {
+//         return Err(anyhow!("请求参数错误"));
+//     }
+
+//     let id = Uuid::parse_str(&search_req.id)?;
+
+//     let res = match s.into_model::<MenuResp>().one(db).await? {
+//         Some(m) => m,
+//         None => return Err(anyhow!("数据不存在")),
+//     };
+
+//     Ok(res)
+// }
+
 async fn check_router_is_exist_add(db: &Pool<Postgres>, req: AddReq) -> Result<bool> {
-    let pid=Uuid::parse_str(&req.pid)?;
+    let pid = Uuid::parse_str(&req.pid)?;
     let count1 = sqlx::query_scalar!(
         // language=PostgreSQL
         r#"SELECT count(1) FROM public.sys_menu WHERE path=$1 AND pid=$2 AND menu_type<>'F'"#,
         req.path,
         pid
-    ).fetch_one(db).await?.unwrap_or(0);
+    )
+    .fetch_one(db)
+    .await?
+    .unwrap_or(0);
     let count2 = sqlx::query_scalar!(
         // language=PostgreSQL
         r#"SELECT count(1) FROM public.sys_menu WHERE menu_name=$1 AND pid=$2"#,
         req.menu_name,
         pid
-    ).fetch_one(db).await?.unwrap_or(0);
+    )
+    .fetch_one(db)
+    .await?
+    .unwrap_or(0);
     Ok(count1 > 0 || count2 > 0)
 }
+async fn check_router_is_exist_update(db: &Pool<Postgres>, req: UpdateReq) -> Result<bool> {
+    let pid = Uuid::parse_str(&req.pid)?;
+    let id = Uuid::parse_str(&req.id)?;
+
+    let count1= sqlx::query_scalar!(
+        // language=PostgreSQL
+        r#"SELECT count(1) FROM public.sys_menu WHERE path=$1 AND pid=$2 AND menu_type<>'F' AND id<>$3"#,
+        req.path,
+        pid,
+        id
+    ).fetch_one(db).await?.unwrap_or(0);
+
+    let count2 = sqlx::query_scalar!(
+        // language=PostgreSQL
+        r#"SELECT count(1) FROM public.sys_menu WHERE menu_name=$1 AND pid=$2 AND id<>$3"#,
+        req.menu_name,
+        pid,
+        id
+    )
+    .fetch_one(db)
+    .await?
+    .unwrap_or(0);
+    Ok(count1 > 0 || count2 > 0)
+}
+
 #[derive(Deserialize, Clone)]
 pub struct SearchReq {
     pub id: Option<String>,
