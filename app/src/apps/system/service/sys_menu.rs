@@ -57,7 +57,6 @@ pub async fn update(db: &Pool<Postgres>, req: UpdateReq) -> Result<String> {
     .await?;
     if exist.is_none() {
         return Err(anyhow!("路由不存在"));
-
     }
     sqlx::query!(
         // language=PostgreSQL
@@ -139,25 +138,132 @@ pub async fn update_log_cache_method(db: &Pool<Postgres>, req: LogCacheEditReq) 
     Ok("更新成功".to_string())
 }
 
-// pub async fn get_by_id(db: &Pool<Postgres>, search_req: SearchReq) -> Result<MenuResp> {
-//     let mut s = SysMenu::find();
-//     s = s.filter(sys_menu::Column::DeletedAt.is_null());
-//     //
-//     if let Some(x) = search_req.id {
-//         s = s.filter(sys_menu::Column::Id.eq(x));
-//     } else {
-//         return Err(anyhow!("请求参数错误"));
-//     }
+pub async fn get_by_id(db: &Pool<Postgres>, search_req: SearchReq) -> Result<MenuResp> {
+    //
+    if let Some(id) = search_req.id {
+        // s = s.filter(sys_menu::Column::DeletedAt.is_null());
 
-//     let id = Uuid::parse_str(&search_req.id)?;
+        // s = s.filter(sys_menu::Column::Id.eq(x));
+        // let id = Uuid::parse_str(&search_req.id)?;
+        let id = Uuid::parse_str(&id)?;
+        let result = sqlx::query_as!(
+            MenuResp,
+            // language=PostgreSQL uuid type to string type
+            r#"select id::text, pid::text, path, menu_name, icon, menu_type, query, order_sort, status, api, method, component, visible, is_cache, log_method, data_cache_method, is_frame, data_scope, i18n, remark from public.sys_menu where deleted_at is null and id = $1"#,
+            id
+        ).fetch_one(db).await?;
+        return Ok(result);
+    } else {
+        return Err(anyhow!("请求参数错误"));
+    }
+}
 
-//     let res = match s.into_model::<MenuResp>().one(db).await? {
-//         Some(m) => m,
-//         None => return Err(anyhow!("数据不存在")),
-//     };
+/// get_all 获取全部
+/// db 数据库连接 使用db.0
+pub async fn get_all_router_tree(db: &Pool<Postgres>) -> Result<Vec<SysMenuTree>> {
+    let menus = get_enabled_menus(db, true, false).await?;
+    let menu_data = self::get_menu_data(menus);
+    let menu_tree = self::get_menu_tree(menu_data, "0".to_string());
 
-//     Ok(res)
-// }
+    Ok(menu_tree)
+}
+
+
+pub fn get_menu_tree(user_menus: Vec<SysMenuTree>, pid: String) -> Vec<SysMenuTree> {
+    let mut menu_tree: Vec<SysMenuTree> = Vec::new();
+    for mut user_menu in user_menus.clone() {
+        if user_menu.user_menu.pid == pid {
+            user_menu.children = Some(get_menu_tree(user_menus.clone(), user_menu.user_menu.id.clone()));
+            menu_tree.push(user_menu.clone());
+        }
+    }
+    menu_tree
+}
+pub fn get_menu_data(menus: Vec<MenuResp>) -> Vec<SysMenuTree> {
+    let mut menu_res: Vec<SysMenuTree> = Vec::new();
+    for mut menu in menus {
+        menu.pid =Some( menu.pid.unwrap_or_default().trim().to_string());
+        let meta = Meta {
+            icon: menu.icon.clone(),
+            title: menu.menu_name.clone(),
+            hidden: menu.visible.clone() != "1",
+            link: if menu.path.clone().starts_with("http") { Some(menu.path.clone()) } else { None },
+            no_cache: menu.is_cache.clone() != "1",
+            i18n: menu.i18n,
+        };
+        let user_menu = UserMenu {
+            meta,
+            id: menu.id.unwrap_or_default().clone(),
+            pid: menu.pid.clone().unwrap_or_default(),
+            path: if !menu.path.clone().starts_with('/') && menu.pid.clone().unwrap_or_default() == "0" {
+                format!("/{}", menu.path.clone())
+            } else {
+                menu.path.clone()
+            },
+            name: menu.path.clone(),
+            menu_name: menu.menu_name.clone(),
+            menu_type: menu.menu_type.clone(),
+            always_show: if menu.is_cache.clone() == "1" && menu.pid.clone().unwrap_or_default() == "0" { Some(true) } else { None },
+            component: menu.component.clone(),
+            hidden: menu.visible.clone() == "0",
+        };
+        let menu_tree = SysMenuTree { user_menu, ..Default::default() };
+        menu_res.push(menu_tree);
+    }
+    menu_res
+}
+
+pub async fn get_related_api_by_db_name(db:&Pool<Postgres>,api_id: &str) -> Result<Vec<String>> {
+    let api_id = Uuid::parse_str(api_id)?;
+    let apis= sqlx::query!(
+        // language=PostgreSQL
+        r#"select sys_menu.api from public.sys_menu where deleted_at is null and method = 'GET' and 
+        id in (select api_id from public.sys_api_db where db in (select db from public.sys_api_db where api_id = $1))"#,
+        api_id
+    ).fetch_all(db).await?;
+    let mut res = Vec::new();
+    for api in apis {
+        res.push(api.api);
+    }
+    Ok(res)
+}
+
+/// 获取全部菜单 或者 除开按键api级别的外的路由
+/// is_router 是否是菜单路由，用于前端生成路由
+/// is_only_api 仅获取按键，api级别的路由
+/// 不能同时为true
+/// 同时false 为获取全部路由
+ async fn get_enabled_menus(
+    db: &Pool<Postgres>,
+    is_router: bool,
+    is_only_api: bool,
+) -> Result<Vec<MenuResp>> {
+    if is_only_api && is_router {
+        return Err(anyhow!("请求参数错误"));
+    }
+    if is_router {
+        let menus=sqlx::query_as!(
+            MenuResp,
+            // language=PostgreSQL
+            r#"select id::text, pid::text, path, menu_name, icon, menu_type, query, order_sort, status, api, method, component, visible, is_cache, log_method, data_cache_method, is_frame, data_scope, i18n, remark from public.sys_menu where deleted_at is null and status = '1' and menu_type <> 'F' order by order_sort "#,
+        ).fetch_all(db).await?;
+        return Ok(menus);
+    } else if is_only_api {
+        let menus=sqlx::query_as!(
+            MenuResp,
+            // language=PostgreSQL
+            r#"select id::text, pid::text, path, menu_name, icon, menu_type, query, order_sort, status, api, method, component, visible, is_cache, log_method, data_cache_method, is_frame, data_scope, i18n, remark from public.sys_menu where deleted_at is null and status = '1' and menu_type = 'F' order by order_sort "#,
+        ).fetch_all(db).await?;
+        return Ok(menus);
+    } else {
+        let menus=sqlx::query_as!(
+            MenuResp,
+            // language=PostgreSQL
+            r#"select id::text, pid::text, path, menu_name, icon, menu_type, query, order_sort, status, api, method, component, visible, is_cache, log_method, data_cache_method, is_frame, data_scope, i18n, remark from public.sys_menu where deleted_at is null and status = '1' order by order_sort "#,
+        ).fetch_all(db).await?;
+        return Ok(menus);
+    }
+}                            
 
 async fn check_router_is_exist_add(db: &Pool<Postgres>, req: AddReq) -> Result<bool> {
     let pid = Uuid::parse_str(&req.pid)?;
@@ -204,6 +310,13 @@ async fn check_router_is_exist_update(db: &Pool<Postgres>, req: UpdateReq) -> Re
     .await?
     .unwrap_or(0);
     Ok(count1 > 0 || count2 > 0)
+}
+#[derive(Serialize, Clone, Debug)]
+pub struct MenuRelated {
+    #[serde(flatten)]
+    pub menu: MenuResp,
+    pub dbs: Vec<String>,
+    pub apis: Vec<String>,
 }
 
 #[derive(Deserialize, Clone)]
@@ -317,5 +430,28 @@ pub struct SysMenu {
     pub is_frame: String,
     pub data_scope: String,
     pub i18n: Option<String>,
+    pub remark: String,
+}
+#[derive(Deserialize, Serialize, Debug, Clone, Default)]
+pub struct MenuResp {
+    pub id: Option<String>,
+    pub pid: Option<String>,
+    pub path: String,
+    pub menu_name: String,
+    pub icon: String,
+    pub menu_type: String,
+    pub query: Option<String>,
+    pub order_sort: i32,
+    pub status: String,
+    pub api: String,
+    pub method: String,
+    pub component: String,
+    pub visible: String,
+    pub is_frame: String,
+    pub is_cache: String,
+    pub data_scope: String,
+    pub log_method: String,
+    pub i18n: Option<String>,
+    pub data_cache_method: String,
     pub remark: String,
 }
