@@ -485,6 +485,7 @@ name = "db"
 version = "0.1.0"
 dependencies = [
  "configs",
+ "log",
  "once_cell",
  "sqlx",
  "tokio",

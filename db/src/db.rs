@@ -1,10 +1,15 @@
 use configs::CFG;
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::{postgres::{PgPoolOptions, PgConnectOptions}, PgPool};
 use tokio::sync::OnceCell;
+use sqlx::ConnectOptions;
+use log::LevelFilter;
 //  异步初始化数据库
 pub static DB: OnceCell<PgPool> = OnceCell::const_new();
 
 pub async fn db_conn() -> PgPool {
+    let mut pool_connection_options = PgConnectOptions::new();
+    pool_connection_options.log_statements(LevelFilter::Trace);
+
     let db = PgPoolOptions::new()
         // The default connection limit for a Postgres server is 100 connections, minus 3 for superusers.
         // Since we're using the default superuser we don't have to worry about this too much,

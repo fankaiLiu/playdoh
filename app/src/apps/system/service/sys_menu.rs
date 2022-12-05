@@ -1,8 +1,14 @@
+use crate::pagination::Pagination;
+use crate::request_query::{PageTurnReq, PageTurnResponse, Page, PageParams};
 use crate::{custom_response::CustomResponseBuilder, utils};
 use anyhow::anyhow;
 use anyhow::Result;
+use async_trait::async_trait;
+use db::{db_conn, DB};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
+use sqlx::postgres::PgRow;
+use sqlx::{QueryBuilder, FromRow, Row};
 use sqlx::{types::Uuid, Pool, Postgres};
 
 pub async fn create(db: &Pool<Postgres>, req: AddReq) -> Result<String> {
@@ -139,12 +145,7 @@ pub async fn update_log_cache_method(db: &Pool<Postgres>, req: LogCacheEditReq) 
 }
 
 pub async fn get_by_id(db: &Pool<Postgres>, search_req: SearchReq) -> Result<MenuResp> {
-    //
     if let Some(id) = search_req.id {
-        // s = s.filter(sys_menu::Column::DeletedAt.is_null());
-
-        // s = s.filter(sys_menu::Column::Id.eq(x));
-        // let id = Uuid::parse_str(&search_req.id)?;
         let id = Uuid::parse_str(&id)?;
         let result = sqlx::query_as!(
             MenuResp,
@@ -226,6 +227,80 @@ pub async fn get_related_api_by_db_name(db:&Pool<Postgres>,api_id: &str) -> Resu
         res.push(api.api);
     }
     Ok(res)
+}
+pub struct MenuClient{}
+impl MenuClient {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+pub struct  OrdersRequest{}
+pub type MenuRequest = PageTurnReq<SearchReq, OrdersRequest>;
+pub type MenuPageResponse = PageTurnResponse<MenuResp>;
+#[async_trait]
+impl Page<MenuRequest, MenuPageResponse> for MenuClient {
+    async fn page(&self, req: MenuRequest) -> Result<MenuPageResponse> {
+        let db = DB.get_or_init(db_conn).await;
+        let pagination = Pagination::build_from_request_query(req.page_turn).count(1).build();
+        let mut count_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            "select count(1) from public.sys_menu where deleted_at is null "
+        );
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            "select cast(id as varchar) ,  cast(pid as varchar), path, menu_name, icon, menu_type, query, order_sort, status, api, method, component, visible, is_cache, log_method, data_cache_method, is_frame, data_scope, i18n, remark from public.sys_menu where deleted_at is null "
+        );
+        if let Some(filter)=&req.filter{
+            if let Some(name) = &filter.menu_name {
+                query_builder.push(" and menu_name like concat('%', ").push_bind(name.clone());
+                query_builder.push(", '%')");
+            }        
+            if let Some(method) = &filter.method {
+                query_builder.push(" and method = '").push_bind(method.clone());
+                query_builder.push("'");
+            }
+            if let Some(component) = &filter.status {
+                query_builder.push(" and component = '").push_bind(component.clone());
+                query_builder.push("'");
+            }
+            if let Some(api) = &filter.menu_type {
+                query_builder.push(" and api = '").push_bind(api.clone());
+                query_builder.push("'");
+            }
+            if let Some(begin_time) = &filter.begin_time {
+                query_builder.push(" and begin_time <= '").push_bind(begin_time.clone());
+                query_builder.push("'");
+            }
+            if let Some(end_time) = &filter.end_time {
+                query_builder.push(" and end_time >= '").push_bind(end_time.clone());
+                query_builder.push("'");
+            }
+        }                    
+        let result=query_builder.build().fetch_all(db).await?;
+        // 转成 Vec<MenuResp>= 
+        let menus =result.iter().map(|x| MenuResp::from_row(x)).collect::<Result<Vec<MenuResp>, _>>()?;
+        //let count=count_builder.build()
+        dbg!(menus.len());
+        return Ok(MenuPageResponse::new(1, menus));
+    }
+
+}
+
+#[tokio::test]
+async fn test_menu_client() {
+    let menu_client = MenuClient::new();
+    let req = MenuRequest {
+        page_turn: PageParams {
+            offset: Some(1),
+            limit: Some(10),
+        },
+        filter: Some(SearchReq {
+            menu_name: Some("登入".to_string()),
+            menu_type: Some("M".to_string()),
+            ..Default::default()
+        }),
+        orders: None,
+    };
+    let res = menu_client.page(req).await;
+    println!("{:?}", res);
 }
 
 /// 获取全部菜单 或者 除开按键api级别的外的路由
@@ -319,7 +394,7 @@ pub struct MenuRelated {
     pub apis: Vec<String>,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone,Default)]
 pub struct SearchReq {
     pub id: Option<String>,
     pub menu_name: Option<String>,
@@ -454,4 +529,30 @@ pub struct MenuResp {
     pub i18n: Option<String>,
     pub data_cache_method: String,
     pub remark: String,
+}
+impl<'r> FromRow<'r, PgRow> for MenuResp {
+    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
+        Ok(MenuResp {
+            id: row.try_get("id")?,
+            pid: row.try_get("pid")?,
+            path: row.try_get("path")?,
+            menu_name: row.try_get("menu_name")?,
+            icon: row.try_get("icon")?,
+            menu_type: row.try_get("menu_type")?,
+            query: row.try_get("query")?,
+            order_sort: row.try_get("order_sort")?,
+            status: row.try_get("status")?,
+            api: row.try_get("api")?,
+            method: row.try_get("method")?,
+            component: row.try_get("component")?,
+            visible: row.try_get("visible")?,
+            is_frame: row.try_get("is_frame")?,
+            is_cache: row.try_get("is_cache")?,
+            data_scope: row.try_get("data_scope")?,
+            log_method: row.try_get("log_method")?,
+            i18n: row.try_get("i18n")?,
+            data_cache_method: row.try_get("data_cache_method")?,
+            remark: row.try_get("remark")?,
+        })       
+    }
 }

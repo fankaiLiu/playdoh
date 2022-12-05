@@ -7,14 +7,15 @@ use crate::utils;
 use crate::utils::jwt::AuthBody;
 use crate::utils::jwt::AuthPayload;
 use crate::Error;
-use crate::Result;
+use anyhow::anyhow;
 use anyhow::Context;
+use anyhow::Result;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash};
 use async_trait::async_trait;
 
-use db::DB;
 use db::db_conn;
+use db::DB;
 use hyper::HeaderMap;
 use serde::Serialize;
 use sqlx::types::Uuid;
@@ -156,12 +157,11 @@ async fn verify_password(password: String, password_hash: String) -> Result<()> 
     tokio::task::spawn_blocking(move || -> Result<()> {
         let hash = PasswordHash::new(&password_hash)
             .map_err(|e| anyhow::anyhow!("invalid password hash: {}", e))?;
-
-        hash.verify_password(&[&Argon2::default()], password)
-            .map_err(|e| match e {
-                argon2::password_hash::Error::Password => Error::Unauthorized,
-                _ => anyhow::anyhow!("failed to verify password hash: {}", e).into(),
-            })
+        let result = hash.verify_password(&[&Argon2::default()], password);
+        match result {
+            Ok(_) => Ok(()),
+            Err(_) => Err(anyhow::anyhow!("invalid password")),
+        }
     })
     .await
     .context("panic in verifying password hash")?
@@ -211,21 +211,24 @@ pub type UserPageResponse = PageTurnResponse<User>;
 #[async_trait]
 impl Page<UserRequest, UserPageResponse> for UserPageClient {
     async fn page(&self, req: UserRequest) -> Result<UserPageResponse> {
-    let db = DB.get_or_init(db_conn).await;
-    let pagination = Pagination::build_from_request_query(req.page_turn).count(1).build();
-    //Paging queries
-    let users = sqlx::query_as!(
+        let db = DB.get_or_init(db_conn).await;
+        let pagination = Pagination::build_from_request_query(req.page_turn)
+            .count(1)
+            .build();
+        //Paging queries
+        let users = sqlx::query_as!(
         User,
         r#"select cast(user_id as varchar), email, username, bio, image from "user" order by user_id limit $1 offset $2"#,
         pagination.limit,
         pagination.offset,
     ).fetch_all(db).await?;
-    //Query the total number of
-    let tatal_count= sqlx::query_scalar!(
-        r#"select count(*) from "user""#,
-    ).fetch_one(db).await?.unwrap_or(0);
-    
-    return Ok(UserPageResponse::new(tatal_count, users));
+        //Query the total number of
+        let tatal_count = sqlx::query_scalar!(r#"select count(*) from "user""#,)
+            .fetch_one(db)
+            .await?
+            .unwrap_or(0);
+
+        return Ok(UserPageResponse::new(tatal_count, users));
     }
 }
 
