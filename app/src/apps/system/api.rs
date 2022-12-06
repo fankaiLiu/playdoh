@@ -7,8 +7,8 @@ pub fn system_api() -> Router {
 }
 
 fn sys_user_api() -> Router {
-    Router::new().route("/create", post(sys_user::create)) // 添加用户
-    .route("/list", post(sys_user::list)) 
-    .route("/delete",delete(sys_user::delete))
-    .route("/update",post(sys_user::update))
+    Router::new().route("/", post(sys_user::create)) // 添加用户
+    .route("/list", get(sys_user::list)) 
+    .route("/",delete(sys_user::delete))
+    .route("/",post(sys_user::update))
 }
