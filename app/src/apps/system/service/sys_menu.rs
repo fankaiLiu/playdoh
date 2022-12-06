@@ -1,5 +1,5 @@
 use crate::pagination::Pagination;
-use crate::request_query::{PageTurnReq, PageTurnResponse, Page, PageParams};
+use crate::request_query::{Page, PageParams, PageTurnReq, PageTurnResponse};
 use crate::{custom_response::CustomResponseBuilder, utils};
 use anyhow::anyhow;
 use anyhow::Result;
@@ -8,8 +8,8 @@ use db::{db_conn, DB};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgRow;
-use sqlx::{QueryBuilder, FromRow, Row};
 use sqlx::{types::Uuid, Pool, Postgres};
+use sqlx::{FromRow, QueryBuilder, Row};
 
 pub async fn create(db: &Pool<Postgres>, req: AddReq) -> Result<String> {
     let pid = Uuid::parse_str(&req.pid)?;
@@ -169,12 +169,14 @@ pub async fn get_all_router_tree(db: &Pool<Postgres>) -> Result<Vec<SysMenuTree>
     Ok(menu_tree)
 }
 
-
 pub fn get_menu_tree(user_menus: Vec<SysMenuTree>, pid: String) -> Vec<SysMenuTree> {
     let mut menu_tree: Vec<SysMenuTree> = Vec::new();
     for mut user_menu in user_menus.clone() {
         if user_menu.user_menu.pid == pid {
-            user_menu.children = Some(get_menu_tree(user_menus.clone(), user_menu.user_menu.id.clone()));
+            user_menu.children = Some(get_menu_tree(
+                user_menus.clone(),
+                user_menu.user_menu.id.clone(),
+            ));
             menu_tree.push(user_menu.clone());
         }
     }
@@ -183,12 +185,16 @@ pub fn get_menu_tree(user_menus: Vec<SysMenuTree>, pid: String) -> Vec<SysMenuTr
 pub fn get_menu_data(menus: Vec<MenuResp>) -> Vec<SysMenuTree> {
     let mut menu_res: Vec<SysMenuTree> = Vec::new();
     for mut menu in menus {
-        menu.pid =Some( menu.pid.unwrap_or_default().trim().to_string());
+        menu.pid = Some(menu.pid.unwrap_or_default().trim().to_string());
         let meta = Meta {
             icon: menu.icon.clone(),
             title: menu.menu_name.clone(),
             hidden: menu.visible.clone() != "1",
-            link: if menu.path.clone().starts_with("http") { Some(menu.path.clone()) } else { None },
+            link: if menu.path.clone().starts_with("http") {
+                Some(menu.path.clone())
+            } else {
+                None
+            },
             no_cache: menu.is_cache.clone() != "1",
             i18n: menu.i18n,
         };
@@ -196,7 +202,9 @@ pub fn get_menu_data(menus: Vec<MenuResp>) -> Vec<SysMenuTree> {
             meta,
             id: menu.id.unwrap_or_default().clone(),
             pid: menu.pid.clone().unwrap_or_default(),
-            path: if !menu.path.clone().starts_with('/') && menu.pid.clone().unwrap_or_default() == "0" {
+            path: if !menu.path.clone().starts_with('/')
+                && menu.pid.clone().unwrap_or_default() == "0"
+            {
                 format!("/{}", menu.path.clone())
             } else {
                 menu.path.clone()
@@ -204,17 +212,26 @@ pub fn get_menu_data(menus: Vec<MenuResp>) -> Vec<SysMenuTree> {
             name: menu.path.clone(),
             menu_name: menu.menu_name.clone(),
             menu_type: menu.menu_type.clone(),
-            always_show: if menu.is_cache.clone() == "1" && menu.pid.clone().unwrap_or_default() == "0" { Some(true) } else { None },
+            always_show: if menu.is_cache.clone() == "1"
+                && menu.pid.clone().unwrap_or_default() == "0"
+            {
+                Some(true)
+            } else {
+                None
+            },
             component: menu.component.clone(),
             hidden: menu.visible.clone() == "0",
         };
-        let menu_tree = SysMenuTree { user_menu, ..Default::default() };
+        let menu_tree = SysMenuTree {
+            user_menu,
+            ..Default::default()
+        };
         menu_res.push(menu_tree);
     }
     menu_res
 }
 
-pub async fn get_related_api_by_db_name(db:&Pool<Postgres>,api_id: &str) -> Result<Vec<String>> {
+pub async fn get_related_api_by_db_name(db: &Pool<Postgres>, api_id: &str) -> Result<Vec<String>> {
     let api_id = Uuid::parse_str(api_id)?;
     let apis= sqlx::query!(
         // language=PostgreSQL
@@ -228,60 +245,115 @@ pub async fn get_related_api_by_db_name(db:&Pool<Postgres>,api_id: &str) -> Resu
     }
     Ok(res)
 }
-pub struct MenuClient{}
+
+pub async fn get_related_db_by_db_name(db: &Pool<Postgres>, api_id: &str) -> Result<Vec<String>> {
+    let api_id = Uuid::parse_str(api_id)?;
+    //sys_api_db::Entity::find().filter(sys_api_db::Column::ApiId.eq(item.id.clone())).all(db)
+    let apis = sqlx::query!(
+        // language=PostgreSQL
+        r#"select sys_api_db.db from public.sys_api_db where  api_id =$1"#,
+        api_id
+    )
+    .fetch_all(db)
+    .await?;
+    let mut res = Vec::new();
+    for api in apis {
+        res.push(api.db);
+    }
+    Ok(res)
+}
+pub struct MenuClient {}
 impl MenuClient {
     pub fn new() -> Self {
         Self {}
     }
 }
-pub struct  OrdersRequest{}
+pub struct OrdersRequest {}
 pub type MenuRequest = PageTurnReq<SearchReq, OrdersRequest>;
 pub type MenuPageResponse = PageTurnResponse<MenuResp>;
 #[async_trait]
 impl Page<MenuRequest, MenuPageResponse> for MenuClient {
     async fn page(&self, req: MenuRequest) -> Result<MenuPageResponse> {
         let db = DB.get_or_init(db_conn).await;
-        let pagination = Pagination::build_from_request_query(req.page_turn).count(1).build();
+        let pagination = Pagination::build_from_request_query(req.page_turn)
+            .count(1)
+            .build();
         let mut count_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            "select count(1) from public.sys_menu where deleted_at is null "
+            "select count(1) as count from public.sys_menu where deleted_at is null ",
         );
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             "select cast(id as varchar) ,  cast(pid as varchar), path, menu_name, icon, menu_type, query, order_sort, status, api, method, component, visible, is_cache, log_method, data_cache_method, is_frame, data_scope, i18n, remark from public.sys_menu where deleted_at is null "
         );
-        if let Some(filter)=&req.filter{
+        if let Some(filter) = &req.filter {
             if let Some(name) = &filter.menu_name {
-                query_builder.push(" and menu_name like concat('%', ").push_bind(name.clone());
+                query_builder
+                    .push(" and menu_name like concat('%', ")
+                    .push_bind(name.clone());
                 query_builder.push(", '%')");
-            }        
+                count_builder
+                    .push(" and menu_name like concat('%', ")
+                    .push_bind(name.clone());
+                count_builder.push(", '%')");
+            }
             if let Some(method) = &filter.method {
-                query_builder.push(" and method = '").push_bind(method.clone());
+                query_builder
+                    .push(" and method = '")
+                    .push_bind(method.clone());
                 query_builder.push("'");
+                count_builder
+                    .push(" and method = '")
+                    .push_bind(method.clone());
+                count_builder.push("'");
             }
             if let Some(component) = &filter.status {
-                query_builder.push(" and component = '").push_bind(component.clone());
+                query_builder
+                    .push(" and component = '")
+                    .push_bind(component.clone());
                 query_builder.push("'");
+                count_builder
+                    .push(" and component = '")
+                    .push_bind(component.clone());
+                count_builder.push("'");
             }
             if let Some(api) = &filter.menu_type {
                 query_builder.push(" and api = '").push_bind(api.clone());
                 query_builder.push("'");
+                count_builder.push(" and api = '").push_bind(api.clone());
+                count_builder.push("'");
             }
             if let Some(begin_time) = &filter.begin_time {
-                query_builder.push(" and begin_time <= '").push_bind(begin_time.clone());
+                query_builder
+                    .push(" and begin_time <= '")
+                    .push_bind(begin_time.clone());
                 query_builder.push("'");
+                count_builder
+                    .push(" and begin_time <= '")
+                    .push_bind(begin_time);
+                count_builder.push("'");
             }
             if let Some(end_time) = &filter.end_time {
-                query_builder.push(" and end_time >= '").push_bind(end_time.clone());
+                query_builder
+                    .push(" and end_time >= '")
+                    .push_bind(end_time.clone());
                 query_builder.push("'");
+                count_builder
+                    .push(" and end_time >= '")
+                    .push_bind(end_time.clone());
+                count_builder.push("'");
             }
-        }                    
-        let result=query_builder.build().fetch_all(db).await?;
-        // 转成 Vec<MenuResp>= 
-        let menus =result.iter().map(|x| MenuResp::from_row(x)).collect::<Result<Vec<MenuResp>, _>>()?;
-        //let count=count_builder.build()
-        dbg!(menus.len());
-        return Ok(MenuPageResponse::new(1, menus));
+        }
+        let result = query_builder.build().fetch_all(db).await?;
+        let menus = result
+            .iter()
+            .map(|x| MenuResp::from_row(x))
+            .collect::<Result<Vec<MenuResp>, _>>()?;
+        let count: i64 = count_builder
+            .build()
+            .fetch_one(db)
+            .await?
+            .try_get("count")?;
+        return Ok(MenuPageResponse::new(count, menus));
     }
-
 }
 
 #[tokio::test]
@@ -294,7 +366,6 @@ async fn test_menu_client() {
         },
         filter: Some(SearchReq {
             menu_name: Some("登入".to_string()),
-            menu_type: Some("M".to_string()),
             ..Default::default()
         }),
         orders: None,
@@ -302,13 +373,41 @@ async fn test_menu_client() {
     let res = menu_client.page(req).await;
     println!("{:?}", res);
 }
+pub type MenuRelatedPageResponse = PageTurnResponse<MenuRelated>;
+
+pub async fn get_related_api_and_db(
+    db: &Pool<Postgres>,
+    req: MenuRequest,
+) -> Result<MenuRelatedPageResponse> {
+    let menu_client = MenuClient::new();
+    let menus = menu_client.page(req).await?;
+    let mut res: Vec<MenuRelated> = Vec::new();
+    for item in menus.data.into_iter() {
+        let id = &item.clone().id.unwrap_or_default();
+        let (dbs_model, apis) = tokio::join!(
+            self::get_related_db_by_db_name(db, id),
+            self::get_related_api_by_db_name(db, id),
+        );
+        let dbs = dbs_model?;
+        let apis = match apis {
+            Ok(v) => v,
+            Err(e) => return Err(anyhow!("{}", e)),
+        };
+        res.push(MenuRelated {
+            menu: item,
+            dbs,
+            apis,
+        });
+    }
+    return Ok(MenuRelatedPageResponse::new(menus.total_count, res));
+}
 
 /// 获取全部菜单 或者 除开按键api级别的外的路由
 /// is_router 是否是菜单路由，用于前端生成路由
 /// is_only_api 仅获取按键，api级别的路由
 /// 不能同时为true
 /// 同时false 为获取全部路由
- async fn get_enabled_menus(
+async fn get_enabled_menus(
     db: &Pool<Postgres>,
     is_router: bool,
     is_only_api: bool,
@@ -338,7 +437,7 @@ async fn test_menu_client() {
         ).fetch_all(db).await?;
         return Ok(menus);
     }
-}                            
+}
 
 async fn check_router_is_exist_add(db: &Pool<Postgres>, req: AddReq) -> Result<bool> {
     let pid = Uuid::parse_str(&req.pid)?;
@@ -394,7 +493,7 @@ pub struct MenuRelated {
     pub apis: Vec<String>,
 }
 
-#[derive(Deserialize, Clone,Default)]
+#[derive(Deserialize, Clone, Default)]
 pub struct SearchReq {
     pub id: Option<String>,
     pub menu_name: Option<String>,
@@ -553,6 +652,6 @@ impl<'r> FromRow<'r, PgRow> for MenuResp {
             i18n: row.try_get("i18n")?,
             data_cache_method: row.try_get("data_cache_method")?,
             remark: row.try_get("remark")?,
-        })       
+        })
     }
 }
