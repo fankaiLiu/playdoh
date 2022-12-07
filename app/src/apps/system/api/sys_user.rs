@@ -1,7 +1,7 @@
 use crate::{
     apps::system::service::{
         self,
-        sys_user::{CreateUser, LoginUser, NewUser, UpdateUser, UserPageClient, UserPageResponse},
+        sys_user::{CreateUser, LoginUser, NewUser, UpdateUser, UserPageResponse},
     },
     custom_response::{CustomResponse, CustomResponseBuilder},
     pagination::PageParams,
@@ -9,7 +9,7 @@ use crate::{
     ResponseResult, Result,
 };
 use axum::{
-    extract::{Path, Query},
+    extract::{Query},
     Json,
 };
 use db::{db_conn, DB};

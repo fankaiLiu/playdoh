@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 
 use axum::http::header::WWW_AUTHENTICATE;
-use axum::http::{HeaderMap, HeaderValue, StatusCode};
+use axum::http::{response, HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde_json::json;
@@ -114,11 +114,14 @@ impl IntoResponse for Error {
                 struct Errors {
                     errors: HashMap<Cow<'static, str>, Vec<Cow<'static, str>>>,
                 }
-
-                return (StatusCode::UNPROCESSABLE_ENTITY, Json(Errors { errors })).into_response();
+                let joson=Json(Errors { errors });
+                let mut response= (StatusCode::UNPROCESSABLE_ENTITY, joson).into_response();
+                let error_json_string = ResErroString("UnprocessableEntity".to_string());
+                response.extensions_mut().insert(error_json_string);
+                return response;
             }
             Self::Unauthorized => {
-                return (
+                let mut response= (
                     self.get_codes().0,
                     // Include the `WWW-Authenticate` challenge required in the specification
                     // for the `401 Unauthorized` response code:
@@ -135,6 +138,9 @@ impl IntoResponse for Error {
                     self.to_string(),
                 )
                     .into_response();
+                    let error_json_string = ResErroString(self.to_string());
+                    response.extensions_mut().insert(error_json_string);
+                    return response;
             }
 
             Self::Sqlx(ref e) => {
@@ -153,74 +159,17 @@ impl IntoResponse for Error {
             _ => (),
         }
         let (status_code, code) = self.get_codes();
-        (
+        let mut response = (
             status_code,
             Json(json!({ "code": code, "message": self.to_string() })),
         )
-            .into_response()
+            .into_response();
+        let error_json_string = ResErroString(self.to_string());
+        response.extensions_mut().insert(error_json_string);
+
+        response
     }
 }
-
-// impl IntoResponse for Error {
-//     // fn into_response(self) -> Response {
-//     //     let (status_code, code) = self.get_codes();
-
-//     //     let message = self.to_string();
-//     //     let body = Json(json!({ "code": code, "message": message }));
-
-//     //     (status_code, body).into_response()
-//     // }
-//     type Body = Full<Bytes>;
-//     type BodyError = <Full<Bytes> as HttpBody>::Error;
-//     fn into_response(self) -> Response<Self::Body> {
-//         match self {
-//             Self::UnprocessableEntity { errors } => {
-//                 #[derive(serde::Serialize)]
-//                 struct Errors {
-//                     errors: HashMap<Cow<'static, str>, Vec<Cow<'static, str>>>,
-//                 }
-
-//                 return (StatusCode::UNPROCESSABLE_ENTITY, Json(Errors { errors })).into_response();
-//             }
-//             Self::Unauthorized => {
-//                 return (
-//                     self.status_code(),
-//                     // Include the `WWW-Authenticate` challenge required in the specification
-//                     // for the `401 Unauthorized` response code:
-//                     // https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
-//                     //
-//                     // The Realworld spec does not specify this:
-//                     // https://realworld-docs.netlify.app/docs/specs/backend-specs/error-handling
-//                     //
-//                     // However, at Launchbadge we try to adhere to web standards wherever possible,
-//                     // if nothing else than to try to act as a vanguard of sanity on the web.
-//                     [(WWW_AUTHENTICATE, HeaderValue::from_static("Token"))]
-//                         .into_iter()
-//                         .collect::<HeaderMap>(),
-//                     self.to_string(),
-//                 )
-//                     .into_response();
-//             }
-
-//             Self::Sqlx(ref e) => {
-//                 // TODO: we probably want to use `tracing` instead
-//                 // so that this gets linked to the HTTP request by `TraceLayer`.
-//                 log::error!("SQLx error: {:?}", e);
-//             }
-
-//             Self::Anyhow(ref e) => {
-//                 // TODO: we probably want to use `tracing` instead
-//                 // so that this gets linked to the HTTP request by `TraceLayer`.
-//                 log::error!("Generic error: {:?}", e);
-//             }
-
-//             // Other errors get mapped normally.
-//             _ => (),
-//         }
-
-//         (self.get_codes().0, self.to_string()).into_response()
-//     }
-// }
 
 #[derive(thiserror::Error, Debug)]
 #[error("...")]
@@ -271,3 +220,5 @@ impl NotFound {
         }
     }
 }
+#[derive(Debug)]
+pub struct ResErroString(pub String);

@@ -15,7 +15,6 @@ use db::{db_conn, DB};
 //     DB,
 // };
 use hyper::StatusCode;
-// use sea_orm::{EntityTrait, Set};
 
 use anyhow::Result;
 
@@ -23,14 +22,13 @@ use crate::{
     apps::system::check_user_online,
     common::ctx::ReqCtx,
     custom_response::ResJsonString,
-    utils::{api_utils::ALL_APIS, jwt::UserInfo},
+    utils::{api_utils::ALL_APIS, jwt::UserInfo}, error::ResErroString,
 };
 
 pub async fn oper_log_fn_mid(
     req: Request<Body>,
     next: Next<Body>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-    dbg!("oper_log_fn_mid");
     // 查询ctx
     let req_ctx = match req.extensions().get::<ReqCtx>() {
         Some(x) => x.clone(),
@@ -47,13 +45,16 @@ pub async fn oper_log_fn_mid(
         Some(x) => x.0.clone(),
         None => "".to_string(),
     };
-    dbg!(&res_string);
+    let error_msg=match res_end.extensions().get::<ResErroString>() {
+        Some(x) => x.0.clone(),
+        None => "".to_string(),
+    };
     oper_log_add(
         req_ctx,
         ctx_user,
         res_string,
         "1".to_string(),
-        "".to_string(),
+        error_msg,
         duration,
     )
     .await;

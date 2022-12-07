@@ -1,5 +1,5 @@
 use axum::{
-    extract::{FromRequest, FromRequestParts, TypedHeader},
+    extract::{FromRequestParts, TypedHeader},
     headers::{authorization::Bearer, Authorization},
     http::{request::Parts, StatusCode},
     response::{IntoResponse, Response},

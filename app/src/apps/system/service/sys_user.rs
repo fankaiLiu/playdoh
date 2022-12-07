@@ -1,4 +1,3 @@
-use crate::custom_response::ResultExt;
 use crate::pagination::PageParams;
 use crate::pagination::PageTurnResponse;
 use crate::pagination::Pagination;
@@ -11,7 +10,7 @@ use anyhow::Result;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash};
 
-use db::db_conn;
+use db::db_conn; 
 use db::DB;
 use hyper::HeaderMap;
 use serde::Serialize;
@@ -33,13 +32,7 @@ pub async fn create_user(db: &Pool<Postgres>, req: NewUser) -> Result<CreateUser
         password_hash
     )
     .fetch_one(db)
-    .await
-    .on_constraint("user_username_key", |_| {
-        Error::unprocessable_entity([("username", "username taken")])
-    })
-    .on_constraint("user_email_key", |_| {
-        Error::unprocessable_entity([("email", "email taken")])
-    })?;
+    .await?;
 
     Ok(CreateUser {
         email: req.email,
@@ -66,11 +59,11 @@ pub async fn page(req: PageParams) -> Result<UserPageResponse> {
         .fetch_one(db)
         .await?
         .unwrap_or(0);
-    return Ok(UserPageResponse::new(tatal_count, users));
+    Ok(UserPageResponse::new(tatal_count, users))
 }
 pub async fn update_user(db: &Pool<Postgres>, req: UpdateUser) -> Result<String> {
     let user_id = Uuid::parse_str(&req.id)?;
-    let user_id = sqlx::query_scalar!(
+    let _user_id = sqlx::query_scalar!(
         // language=PostgreSQL
         r#"update "user" set username = $1, email = $2, bio = $3, image = $4 where user_id = $5 returning user_id"#,
         req.username,
@@ -80,13 +73,7 @@ pub async fn update_user(db: &Pool<Postgres>, req: UpdateUser) -> Result<String>
         user_id
     )
     .fetch_one(db)
-    .await
-    .on_constraint("user_username_key", |_| {
-        Error::unprocessable_entity([("username", "username taken")])
-    })
-    .on_constraint("user_email_key", |_| {
-        Error::unprocessable_entity([("email", "email taken")])
-    })?;
+    .await?;
     Ok("ok".to_string())
 }
 
