@@ -53,9 +53,7 @@ pub async fn create_user(db: &Pool<Postgres>, req: NewUser) -> Result<CreateUser
 pub type UserPageResponse = PageTurnResponse<User>;
 pub async fn page(req: PageParams) -> Result<UserPageResponse> {
     let db = DB.get_or_init(db_conn).await;
-    let pagination = Pagination::build_from_request_query(req)
-        .count(1)
-        .build();
+    let pagination = Pagination::build_from_request_query(req).count(1).build();
     //Paging queries
     let users = sqlx::query_as!(
     User,
@@ -215,7 +213,7 @@ pub struct SearchResult {
 pub struct OrdersRequest {}
 pub struct UserPageClient {}
 
- #[derive(serde::Deserialize)]
+#[derive(serde::Deserialize)]
 pub struct NewUser {
     username: String,
     email: String,

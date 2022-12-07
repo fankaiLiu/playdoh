@@ -1,7 +1,7 @@
 use axum::{
-    extract::{FromRequest, TypedHeader, FromRequestParts},
+    extract::{FromRequest, FromRequestParts, TypedHeader},
     headers::{authorization::Bearer, Authorization},
-    http::{StatusCode, request::Parts},
+    http::{request::Parts, StatusCode},
     response::{IntoResponse, Response},
     Json, RequestPartsExt,
 };
@@ -60,11 +60,11 @@ pub struct UserInfo {
 #[axum::async_trait]
 impl<S> FromRequestParts<S> for Claims
 where
-S: Send + Sync,
+    S: Send + Sync,
 {
     type Rejection = AuthError;
     /// 将用户信息注入request
-    async fn from_request_parts(req:&mut Parts,_state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(req: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         let (_, token_v) = get_bear_token(req).await?;
         // Decode the user data
 
@@ -109,9 +109,9 @@ pub async fn get_bear_token(parts: &mut Parts) -> Result<(String, String), AuthE
 where
 {
     let TypedHeader(Authorization(bearer)) = parts
-    .extract::<TypedHeader<Authorization<Bearer>>>()
-    .await
-    .map_err(|_| AuthError::InvalidToken)?;
+        .extract::<TypedHeader<Authorization<Bearer>>>()
+        .await
+        .map_err(|_| AuthError::InvalidToken)?;
     // Decode the user data
     let bearer_data = bearer.token();
     let cut = bearer_data.len() - scru128::new_string().len();

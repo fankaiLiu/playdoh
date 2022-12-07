@@ -5,7 +5,6 @@ use ahash::AHashMap as HashMap;
 use once_cell::sync::Lazy;
 use tokio::sync::Mutex;
 
-
 use crate::common::ctx::ApiInfo;
 
 pub static ALL_APIS: Lazy<Arc<Mutex<HashMap<String, ApiInfo>>>> = Lazy::new(|| {

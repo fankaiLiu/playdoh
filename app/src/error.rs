@@ -80,9 +80,7 @@ impl Error {
             Error::Forbidden => (StatusCode::FORBIDDEN, 40003),
             Error::UnprocessableEntity { .. } => (StatusCode::UNPROCESSABLE_ENTITY, 40003),
             Error::Uuid(_) => (StatusCode::BAD_REQUEST, 40003),
-            Error::SerderError(_) => {
-                (StatusCode::BAD_REQUEST, 40003)
-            },
+            Error::SerderError(_) => (StatusCode::BAD_REQUEST, 40003),
         }
     }
     /// Convenient constructor for `Error::UnprocessableEntity`.

@@ -1,8 +1,11 @@
 use configs::CFG;
-use sqlx::{postgres::{PgPoolOptions, PgConnectOptions}, PgPool};
-use tokio::sync::OnceCell;
-use sqlx::ConnectOptions;
 use log::LevelFilter;
+use sqlx::ConnectOptions;
+use sqlx::{
+    postgres::{PgConnectOptions, PgPoolOptions},
+    PgPool,
+};
+use tokio::sync::OnceCell;
 //  异步初始化数据库
 pub static DB: OnceCell<PgPool> = OnceCell::const_new();
 

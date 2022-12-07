@@ -1,6 +1,5 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
- 
 const LIMIT: i64 = 100;
 const OFFSET: i64 = 0;
 
@@ -66,20 +65,13 @@ pub struct PageTurnResponse<T> {
     pub data: Vec<T>,
 }
 
-impl<T> PageTurnResponse<T>
-{
+impl<T> PageTurnResponse<T> {
     pub fn new(total_count: i64, data: Vec<T>) -> Self {
-        Self {
-            total_count,
-            data,
-        }
-    }   
+        Self { total_count, data }
+    }
 }
 #[derive(Debug, Deserialize)]
 pub struct PageParams {
     pub offset: Option<i64>,
     pub limit: Option<i64>,
 }
-
- 
- 

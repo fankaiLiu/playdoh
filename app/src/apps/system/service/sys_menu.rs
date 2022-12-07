@@ -1,4 +1,4 @@
-use crate::pagination::{Pagination, PageParams, PageTurnResponse};
+use crate::pagination::{PageParams, PageTurnResponse, Pagination};
 use crate::{custom_response::CustomResponseBuilder, utils};
 use anyhow::anyhow;
 use anyhow::Result;
@@ -268,95 +268,94 @@ impl MenuClient {
     }
 }
 pub type MenuPageResponse = PageTurnResponse<MenuResp>;
-    async fn page(pageParams: PageParams,searchReq:Option<SearchReq>) -> Result<MenuPageResponse> {
-        let db = DB.get_or_init(db_conn).await;
-        let pagination = Pagination::build_from_request_query(pageParams)
-            .build();
-        let mut count_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            "select count(1) as count from public.sys_menu where deleted_at is null ",
-        );
-        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+async fn page(pageParams: PageParams, searchReq: Option<SearchReq>) -> Result<MenuPageResponse> {
+    let db = DB.get_or_init(db_conn).await;
+    let pagination = Pagination::build_from_request_query(pageParams).build();
+    let mut count_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+        "select count(1) as count from public.sys_menu where deleted_at is null ",
+    );
+    let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             "select cast(id as varchar) ,  cast(pid as varchar), path, menu_name, icon, menu_type, query, order_sort, status, api, method, component, visible, is_cache, log_method, data_cache_method, is_frame, data_scope, i18n, remark from public.sys_menu where deleted_at is null "
         );
-        if let Some(filter) = &searchReq {
-            if let Some(name) = &filter.menu_name {
-                query_builder
-                    .push(" and menu_name like concat('%', ")
-                    .push_bind(name.clone());
-                query_builder.push(", '%')");
-                count_builder
-                    .push(" and menu_name like concat('%', ")
-                    .push_bind(name.clone());
-                count_builder.push(", '%')");
-            }
-            if let Some(method) = &filter.method {
-                query_builder
-                    .push(" and method = '")
-                    .push_bind(method.clone());
-                query_builder.push("'");
-                count_builder
-                    .push(" and method = '")
-                    .push_bind(method.clone());
-                count_builder.push("'");
-            }
-            if let Some(component) = &filter.status {
-                query_builder
-                    .push(" and component = '")
-                    .push_bind(component.clone());
-                query_builder.push("'");
-                count_builder
-                    .push(" and component = '")
-                    .push_bind(component.clone());
-                count_builder.push("'");
-            }
-            if let Some(api) = &filter.menu_type {
-                query_builder.push(" and api = '").push_bind(api.clone());
-                query_builder.push("'");
-                count_builder.push(" and api = '").push_bind(api.clone());
-                count_builder.push("'");
-            }
-            if let Some(begin_time) = &filter.begin_time {
-                query_builder
-                    .push(" and begin_time <= '")
-                    .push_bind(begin_time.clone());
-                query_builder.push("'");
-                count_builder
-                    .push(" and begin_time <= '")
-                    .push_bind(begin_time);
-                count_builder.push("'");
-            }
-            if let Some(end_time) = &filter.end_time {
-                query_builder
-                    .push(" and end_time >= '")
-                    .push_bind(end_time.clone());
-                query_builder.push("'");
-                count_builder
-                    .push(" and end_time >= '")
-                    .push_bind(end_time.clone());
-                count_builder.push("'");
-            }
+    if let Some(filter) = &searchReq {
+        if let Some(name) = &filter.menu_name {
+            query_builder
+                .push(" and menu_name like concat('%', ")
+                .push_bind(name.clone());
+            query_builder.push(", '%')");
+            count_builder
+                .push(" and menu_name like concat('%', ")
+                .push_bind(name.clone());
+            count_builder.push(", '%')");
         }
-        let result = query_builder.build().fetch_all(db).await?;
-        let menus = result
-            .iter()
-            .map(|x| MenuResp::from_row(x))
-            .collect::<Result<Vec<MenuResp>, _>>()?;
-        let count: i64 = count_builder
-            .build()
-            .fetch_one(db)
-            .await?
-            .try_get("count")?;
-        return Ok(MenuPageResponse::new(count, menus));
+        if let Some(method) = &filter.method {
+            query_builder
+                .push(" and method = '")
+                .push_bind(method.clone());
+            query_builder.push("'");
+            count_builder
+                .push(" and method = '")
+                .push_bind(method.clone());
+            count_builder.push("'");
+        }
+        if let Some(component) = &filter.status {
+            query_builder
+                .push(" and component = '")
+                .push_bind(component.clone());
+            query_builder.push("'");
+            count_builder
+                .push(" and component = '")
+                .push_bind(component.clone());
+            count_builder.push("'");
+        }
+        if let Some(api) = &filter.menu_type {
+            query_builder.push(" and api = '").push_bind(api.clone());
+            query_builder.push("'");
+            count_builder.push(" and api = '").push_bind(api.clone());
+            count_builder.push("'");
+        }
+        if let Some(begin_time) = &filter.begin_time {
+            query_builder
+                .push(" and begin_time <= '")
+                .push_bind(begin_time.clone());
+            query_builder.push("'");
+            count_builder
+                .push(" and begin_time <= '")
+                .push_bind(begin_time);
+            count_builder.push("'");
+        }
+        if let Some(end_time) = &filter.end_time {
+            query_builder
+                .push(" and end_time >= '")
+                .push_bind(end_time.clone());
+            query_builder.push("'");
+            count_builder
+                .push(" and end_time >= '")
+                .push_bind(end_time.clone());
+            count_builder.push("'");
+        }
     }
+    let result = query_builder.build().fetch_all(db).await?;
+    let menus = result
+        .iter()
+        .map(|x| MenuResp::from_row(x))
+        .collect::<Result<Vec<MenuResp>, _>>()?;
+    let count: i64 = count_builder
+        .build()
+        .fetch_one(db)
+        .await?
+        .try_get("count")?;
+    return Ok(MenuPageResponse::new(count, menus));
+}
 
- 
 pub type MenuRelatedPageResponse = PageTurnResponse<MenuRelated>;
 
 pub async fn get_related_api_and_db(
     db: &Pool<Postgres>,
-    pageParams: PageParams,searchReq:Option<SearchReq>) -> Result<MenuRelatedPageResponse> {
-    
-    let menus=self::page(pageParams,searchReq).await?;
+    pageParams: PageParams,
+    searchReq: Option<SearchReq>,
+) -> Result<MenuRelatedPageResponse> {
+    let menus = self::page(pageParams, searchReq).await?;
     let mut res: Vec<MenuRelated> = Vec::new();
     for item in menus.data.into_iter() {
         let id = &item.clone().id.unwrap_or_default();
