@@ -21,12 +21,14 @@ pub enum Error {
     #[error("{0}")]
     NotFound(#[from] NotFound),
     #[error("{0}")]
+    SerderError(#[from] serde_json::Error),
+    #[error("{0}")]
     BadRequest(#[from] BadRequest),
     #[error("an error occurred with the database,{0}")]
     Sqlx(#[from] sqlx::Error),
     #[error("an error occurred with the uuid,{0}")]
     Uuid(#[from] uuid::Error),
-    #[error("an internal server error occurred")]
+    #[error("{0}an internal server error occurred")]
     Anyhow(#[from] anyhow::Error),
     /// Return `401 Unauthorized`
     #[error("authentication required")]
@@ -78,6 +80,9 @@ impl Error {
             Error::Forbidden => (StatusCode::FORBIDDEN, 40003),
             Error::UnprocessableEntity { .. } => (StatusCode::UNPROCESSABLE_ENTITY, 40003),
             Error::Uuid(_) => (StatusCode::BAD_REQUEST, 40003),
+            Error::SerderError(_) => {
+                (StatusCode::BAD_REQUEST, 40003)
+            },
         }
     }
     /// Convenient constructor for `Error::UnprocessableEntity`.

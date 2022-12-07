@@ -1,4 +1,4 @@
-use axum::{routing::{post, get, delete}, Router};
+use axum::{routing::{post, get, delete, put}, Router};
 mod sys_user; // 用户管理
 pub use sys_user::login;
 
@@ -10,5 +10,5 @@ fn sys_user_api() -> Router {
     Router::new().route("/", post(sys_user::create)) // 添加用户
     .route("/list", get(sys_user::list)) 
     .route("/",delete(sys_user::delete))
-    .route("/",post(sys_user::update))
+    .route("/",put(sys_user::update))
 }

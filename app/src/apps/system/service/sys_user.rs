@@ -1,18 +1,15 @@
 use crate::custom_response::ResultExt;
+use crate::pagination::PageParams;
+use crate::pagination::PageTurnResponse;
 use crate::pagination::Pagination;
-use crate::request_query::Page;
-use crate::request_query::PageTurnReq;
-use crate::request_query::PageTurnResponse;
 use crate::utils;
 use crate::utils::jwt::AuthBody;
 use crate::utils::jwt::AuthPayload;
 use crate::Error;
-use anyhow::anyhow;
 use anyhow::Context;
 use anyhow::Result;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash};
-use async_trait::async_trait;
 
 use db::db_conn;
 use db::DB;
@@ -53,7 +50,26 @@ pub async fn create_user(db: &Pool<Postgres>, req: NewUser) -> Result<CreateUser
         image: None,
     })
 }
-
+pub type UserPageResponse = PageTurnResponse<User>;
+pub async fn page(req: PageParams) -> Result<UserPageResponse> {
+    let db = DB.get_or_init(db_conn).await;
+    let pagination = Pagination::build_from_request_query(req)
+        .count(1)
+        .build();
+    //Paging queries
+    let users = sqlx::query_as!(
+    User,
+    r#"select cast(user_id as varchar), email, username, bio, image from "user" order by user_id limit $1 offset $2"#,
+    pagination.limit,
+    pagination.offset,
+).fetch_all(db).await?;
+    //Query the total number of
+    let tatal_count = sqlx::query_scalar!(r#"select count(*) from "user""#,)
+        .fetch_one(db)
+        .await?
+        .unwrap_or(0);
+    return Ok(UserPageResponse::new(tatal_count, users));
+}
 pub async fn update_user(db: &Pool<Postgres>, req: UpdateUser) -> Result<String> {
     let user_id = Uuid::parse_str(&req.id)?;
     let user_id = sqlx::query_scalar!(
@@ -199,40 +215,7 @@ pub struct SearchResult {
 pub struct OrdersRequest {}
 pub struct UserPageClient {}
 
-impl UserPageClient {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-
-pub type UserRequest = PageTurnReq<SearchResult, OrdersRequest>;
-pub type UserPageResponse = PageTurnResponse<User>;
-
-#[async_trait]
-impl Page<UserRequest, UserPageResponse> for UserPageClient {
-    async fn page(&self, req: UserRequest) -> Result<UserPageResponse> {
-        let db = DB.get_or_init(db_conn).await;
-        let pagination = Pagination::build_from_request_query(req.page_turn)
-            .count(1)
-            .build();
-        //Paging queries
-        let users = sqlx::query_as!(
-        User,
-        r#"select cast(user_id as varchar), email, username, bio, image from "user" order by user_id limit $1 offset $2"#,
-        pagination.limit,
-        pagination.offset,
-    ).fetch_all(db).await?;
-        //Query the total number of
-        let tatal_count = sqlx::query_scalar!(r#"select count(*) from "user""#,)
-            .fetch_one(db)
-            .await?
-            .unwrap_or(0);
-
-        return Ok(UserPageResponse::new(tatal_count, users));
-    }
-}
-
-#[derive(serde::Deserialize)]
+ #[derive(serde::Deserialize)]
 pub struct NewUser {
     username: String,
     email: String,

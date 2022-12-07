@@ -3,7 +3,6 @@ pub mod common;
 pub mod custom_response;
 pub mod error;
 pub mod pagination;
-pub mod request_query;
 pub mod starting;
 pub mod utils;
 use custom_response::CustomResponse;

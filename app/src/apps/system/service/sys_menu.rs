@@ -1,5 +1,4 @@
-use crate::pagination::Pagination;
-use crate::request_query::{Page, PageParams, PageTurnReq, PageTurnResponse};
+use crate::pagination::{Pagination, PageParams, PageTurnResponse};
 use crate::{custom_response::CustomResponseBuilder, utils};
 use anyhow::anyhow;
 use anyhow::Result;
@@ -268,15 +267,10 @@ impl MenuClient {
         Self {}
     }
 }
-pub struct OrdersRequest {}
-pub type MenuRequest = PageTurnReq<SearchReq, OrdersRequest>;
 pub type MenuPageResponse = PageTurnResponse<MenuResp>;
-#[async_trait]
-impl Page<MenuRequest, MenuPageResponse> for MenuClient {
-    async fn page(&self, req: MenuRequest) -> Result<MenuPageResponse> {
+    async fn page(pageParams: PageParams,searchReq:Option<SearchReq>) -> Result<MenuPageResponse> {
         let db = DB.get_or_init(db_conn).await;
-        let pagination = Pagination::build_from_request_query(req.page_turn)
-            .count(1)
+        let pagination = Pagination::build_from_request_query(pageParams)
             .build();
         let mut count_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             "select count(1) as count from public.sys_menu where deleted_at is null ",
@@ -284,7 +278,7 @@ impl Page<MenuRequest, MenuPageResponse> for MenuClient {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             "select cast(id as varchar) ,  cast(pid as varchar), path, menu_name, icon, menu_type, query, order_sort, status, api, method, component, visible, is_cache, log_method, data_cache_method, is_frame, data_scope, i18n, remark from public.sys_menu where deleted_at is null "
         );
-        if let Some(filter) = &req.filter {
+        if let Some(filter) = &searchReq {
             if let Some(name) = &filter.menu_name {
                 query_builder
                     .push(" and menu_name like concat('%', ")
@@ -354,33 +348,15 @@ impl Page<MenuRequest, MenuPageResponse> for MenuClient {
             .try_get("count")?;
         return Ok(MenuPageResponse::new(count, menus));
     }
-}
 
-#[tokio::test]
-async fn test_menu_client() {
-    let menu_client = MenuClient::new();
-    let req = MenuRequest {
-        page_turn: PageParams {
-            offset: Some(1),
-            limit: Some(10),
-        },
-        filter: Some(SearchReq {
-            menu_name: Some("登入".to_string()),
-            ..Default::default()
-        }),
-        orders: None,
-    };
-    let res = menu_client.page(req).await;
-    println!("{:?}", res);
-}
+ 
 pub type MenuRelatedPageResponse = PageTurnResponse<MenuRelated>;
 
 pub async fn get_related_api_and_db(
     db: &Pool<Postgres>,
-    req: MenuRequest,
-) -> Result<MenuRelatedPageResponse> {
-    let menu_client = MenuClient::new();
-    let menus = menu_client.page(req).await?;
+    pageParams: PageParams,searchReq:Option<SearchReq>) -> Result<MenuRelatedPageResponse> {
+    
+    let menus=self::page(pageParams,searchReq).await?;
     let mut res: Vec<MenuRelated> = Vec::new();
     for item in menus.data.into_iter() {
         let id = &item.clone().id.unwrap_or_default();

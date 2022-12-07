@@ -1,7 +1,6 @@
-use serde::{Serialize};
+use serde::{Serialize, Deserialize};
 
-use crate::request_query::PageParams;
-
+ 
 const LIMIT: i64 = 100;
 const OFFSET: i64 = 0;
 
@@ -61,9 +60,26 @@ impl PaginationBuilder {
         }
     }
 }
+#[derive(Debug, Serialize)]
+pub struct PageTurnResponse<T> {
+    pub total_count: i64,
+    pub data: Vec<T>,
+}
+
+impl<T> PageTurnResponse<T>
+{
+    pub fn new(total_count: i64, data: Vec<T>) -> Self {
+        Self {
+            total_count,
+            data,
+        }
+    }   
+}
+#[derive(Debug, Deserialize)]
+pub struct PageParams {
+    pub offset: Option<i64>,
+    pub limit: Option<i64>,
+}
 
  
-
  
- 
-

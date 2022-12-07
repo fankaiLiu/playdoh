@@ -1,14 +1,14 @@
-use axum::Json;
+use axum::{Json, extract::{Path, Query}};
 use db::{db_conn, DB};
 use headers::HeaderMap;
 use crate::{
     apps::system::service::{
         self,
-        sys_user::{CreateUser, LoginUser, NewUser, UpdateUser, UserRequest, UserPageClient, UserPageResponse},
+        sys_user::{CreateUser, LoginUser, NewUser, UpdateUser, UserPageClient, UserPageResponse},
     },
     custom_response::{CustomResponse, CustomResponseBuilder},
     utils::jwt::AuthBody,
-    ResponseResult, Result, request_query::Page,
+    ResponseResult, Result, pagination::PageParams,
 };
 pub async fn create(Json(req): Json<NewUser>) -> ResponseResult<CreateUser> {
     let db = DB.get_or_init(db_conn).await;
@@ -28,9 +28,8 @@ pub async fn delete(id: String) -> ResponseResult<String> {
     Ok(CustomResponseBuilder::new().body(res).build())
 }
 
-pub async fn list(Json(request): Json<UserRequest> )-> ResponseResult<UserPageResponse> {
-    let client=UserPageClient::new();
-    let res=client.page(request).await.unwrap();
+pub async fn list(Query(request): Query<PageParams> )-> ResponseResult<UserPageResponse> {
+    let res= service::sys_user::page(request).await.unwrap();
     Ok(CustomResponseBuilder::new().body(res).build())
 }
 
