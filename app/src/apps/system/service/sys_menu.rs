@@ -381,7 +381,7 @@ pub async fn get_related_api_and_db(
 /// is_only_api 仅获取按键，api级别的路由
 /// 不能同时为true
 /// 同时false 为获取全部路由
-async fn get_enabled_menus(
+pub async fn get_enabled_menus(
     db: &Pool<Postgres>,
     is_router: bool,
     is_only_api: bool,

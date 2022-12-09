@@ -83,7 +83,7 @@ where
             error!("Error serializing response body as JSON: {:?}", err);
             return (StatusCode::INTERNAL_SERVER_ERROR).into_response();
         }
-
+        dbg!(&self.pagination);
         match self.pagination {
             Some(pagination) => {
                 let count = pagination.count.to_string();

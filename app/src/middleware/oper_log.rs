@@ -69,7 +69,6 @@ pub async fn oper_log_add(
     err_msg: String,
     duration: Duration,
 ) {
-    dbg!("oper_log_add");
     tokio::spawn(async move {
         match oper_log_add_fn(ctx, ctx_user, res, status, err_msg, duration).await {
             Ok(_) => {}
