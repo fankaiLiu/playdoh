@@ -2,12 +2,25 @@ use crate::pagination::{PageParams, PageTurnResponse, Pagination};
 use crate::{custom_response::CustomResponseBuilder, utils};
 use anyhow::anyhow;
 use anyhow::Result;
+use db::db::SqlCommandExecutor;
 use db::{db_conn, DB};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgRow;
 use sqlx::{types::Uuid, Pool, Postgres};
 use sqlx::{FromRow, QueryBuilder, Row};
+
+pub struct SysMenuService<'a, 'b> {
+    sql_command_executor: &'b mut SqlCommandExecutor<'a, 'b>,
+}
+
+impl<'a, 'b> SysMenuService<'a, 'b> {
+    pub fn new(sql_command_executor: &'b mut SqlCommandExecutor<'a, 'b>) -> Self {
+        Self {
+            sql_command_executor,
+        }
+    }
+}
 
 pub async fn create(db: &Pool<Postgres>, req: AddReq) -> Result<String> {
     let pid = Uuid::parse_str(&req.pid)?;
@@ -148,7 +161,7 @@ pub async fn get_by_id(db: &Pool<Postgres>, search_req: SearchReq) -> Result<Men
         let result = sqlx::query_as!(
             MenuResp,
             // language=PostgreSQL uuid type to string type
-            r#"select id::text, pid::text, path, menu_name, icon, menu_type, query, order_sort, status, api, method, component, visible, is_cache, log_method, data_cache_method, is_frame, data_scope, i18n, remark from public.sys_menu where deleted_at is null and id = $1"#,
+            r#"select id::text, pid::text, path, menu_name, icon, menu_type, query, order_sort, status, api, method, component, visible, is_cache, log_method, data_cache_method, is_frame, data_scope, i18n, remark ,auth_type from public.sys_menu where deleted_at is null and id = $1"#,
             id
         ).fetch_one(db).await?;
         return Ok(result);
@@ -160,7 +173,8 @@ pub async fn get_by_id(db: &Pool<Postgres>, search_req: SearchReq) -> Result<Men
 /// get_all 获取全部
 /// db 数据库连接 使用db.0
 pub async fn get_all_router_tree(db: &Pool<Postgres>) -> Result<Vec<SysMenuTree>> {
-    let menus = get_enabled_menus(db, true, false).await?;
+    let mut db=SqlCommandExecutor::WithoutTransaction(db);
+    let menus = get_enabled_menus(&mut db, true, false).await?;
     let menu_data = self::get_menu_data(menus);
     let menu_tree = self::get_menu_tree(menu_data, "0".to_string());
 
@@ -274,7 +288,7 @@ async fn page(page_params: PageParams, search_req: Option<SearchReq>) -> Result<
         "select count(1) as count from public.sys_menu where deleted_at is null ",
     );
     let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            "select cast(id as varchar) ,  cast(pid as varchar), path, menu_name, icon, menu_type, query, order_sort, status, api, method, component, visible, is_cache, log_method, data_cache_method, is_frame, data_scope, i18n, remark from public.sys_menu where deleted_at is null "
+            "select cast(id as varchar) ,  cast(pid as varchar), path, auth_type,menu_name, icon, menu_type, query, order_sort, status, api, method, component, visible, is_cache, log_method, data_cache_method, is_frame, data_scope, i18n, remark from public.sys_menu where deleted_at is null "
         );
     if let Some(filter) = &search_req {
         if let Some(name) = &filter.menu_name {
@@ -381,36 +395,29 @@ pub async fn get_related_api_and_db(
 /// is_only_api 仅获取按键，api级别的路由
 /// 不能同时为true
 /// 同时false 为获取全部路由
-pub async fn get_enabled_menus(
-    db: &Pool<Postgres>,
+pub async fn get_enabled_menus<'a, 'b>(
+    exector: & mut SqlCommandExecutor<'a, 'b>,
     is_router: bool,
     is_only_api: bool,
 ) -> Result<Vec<MenuResp>> {
     if is_only_api && is_router {
         return Err(anyhow!("请求参数错误"));
     }
+    let mut sql = String::new();
     if is_router {
-        let menus=sqlx::query_as!(
-            MenuResp,
-            // language=PostgreSQL
+        sql = String::from(
             r#"select id::text, pid::text, path, menu_name, icon, menu_type, query, order_sort, status, api, method, component, visible, is_cache, log_method, data_cache_method, is_frame, data_scope, i18n, remark from public.sys_menu where deleted_at is null and status = '1' and menu_type <> 'F' order by order_sort "#,
-        ).fetch_all(db).await?;
-        return Ok(menus);
+        );
     } else if is_only_api {
-        let menus=sqlx::query_as!(
-            MenuResp,
-            // language=PostgreSQL
+        sql = String::from(
             r#"select id::text, pid::text, path, menu_name, icon, menu_type, query, order_sort, status, api, method, component, visible, is_cache, log_method, data_cache_method, is_frame, data_scope, i18n, remark from public.sys_menu where deleted_at is null and status = '1' and menu_type = 'F' order by order_sort "#,
-        ).fetch_all(db).await?;
-        return Ok(menus);
+        );
     } else {
-        let menus=sqlx::query_as!(
-            MenuResp,
-            // language=PostgreSQL
+        sql = String::from(
             r#"select id::text, pid::text, path, menu_name, icon, menu_type, query, order_sort, status, api, method, component, visible, is_cache, log_method, data_cache_method, is_frame, data_scope, i18n, remark from public.sys_menu where deleted_at is null and status = '1' order by order_sort "#,
-        ).fetch_all(db).await?;
-        return Ok(menus);
+        );
     }
+    Ok(exector.find_all(&sql).await?)
 }
 
 async fn check_router_is_exist_add(db: &Pool<Postgres>, req: AddReq) -> Result<bool> {
@@ -599,6 +606,7 @@ pub struct MenuResp {
     pub is_cache: String,
     pub data_scope: String,
     pub log_method: String,
+    pub auth_type: String,
     pub i18n: Option<String>,
     pub data_cache_method: String,
     pub remark: String,
@@ -626,6 +634,7 @@ impl<'r> FromRow<'r, PgRow> for MenuResp {
             i18n: row.try_get("i18n")?,
             data_cache_method: row.try_get("data_cache_method")?,
             remark: row.try_get("remark")?,
+            auth_type: row.try_get("auth_type")?,
         })
     }
 }

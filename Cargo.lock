@@ -484,6 +484,7 @@ dependencies = [
 name = "db"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "configs",
  "log",
  "once_cell",
