@@ -40,7 +40,7 @@ pub async fn add_role_api<'a, 'b>(
 
 pub async fn delete_role_api<'a, 'b>(
     exector: &mut SqlCommandExecutor<'a, 'b>,
-    role_ids: Vec<String>,
+    role_ids: Vec<Uuid>,
 ) -> Result<()> {
     //sys_role_api::Entity::delete_many().filter(sys_role_api::Column::RoleId.is_in(role_ids)).exec(db).await?;
     let mut sql = String::from("DELETE FROM sys_role_api WHERE role_id IN (");
