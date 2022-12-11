@@ -4,9 +4,9 @@ use std::str::FromStr;
 use ahash::HashMap;
 use db::db::{SqlCommandExecutor, TransactionManager};
 use serde::Deserialize;
-use sqlx::{Arguments, PgPool, Transaction};
+use sqlx::{Arguments, FromRow, PgPool};
 
-use anyhow::{anyhow, Ok, Result};
+use anyhow::{anyhow, Result};
 use sqlx::postgres::{PgArguments, PgRow};
 use sqlx::{types::Uuid, Pool, Postgres};
 
@@ -88,17 +88,50 @@ pub async fn edit(db: &PgPool, req: EditReq, created_by: &Uuid) -> Result<String
     Ok("角色数据更新成功".to_string())
 }
 
-pub async fn set_status(db:&PgPool,req: StatusReq)->Result<String>
-{
-    let role_id= Uuid::parse_str(&req.role_id)?;
-    sqlx::query_scalar!("update sys_role set status=$1 where role_id=$2",req.status,role_id).execute(db).await?;
+pub async fn set_status(db: &PgPool, req: StatusReq) -> Result<String> {
+    let role_id = Uuid::parse_str(&req.role_id)?;
+    sqlx::query_scalar!(
+        "update sys_role set status=$1 where role_id=$2",
+        req.status,
+        role_id
+    )
+    .execute(db)
+    .await?;
     Ok(format!("更新成功"))
 }
 
 // set_status 状态修改
-pub async fn set_data_scope(db:&PgPool,req: DataScopeReq)->Result<String>
-{
-
+pub async fn set_data_scope(db: &PgPool, req: DataScopeReq) -> Result<String> {
+    let role_id = Uuid::parse_str(&req.role_id)?;
+    let mut txn = db.begin().await?;
+    let data_scope = req.data_scope;
+    sqlx::query_scalar!(
+        "update sys_role set data_scope=$1 where role_id=$2",
+        data_scope,
+        role_id
+    )
+    .execute(&mut txn)
+    .await?;
+    // 当数据权限为自定义数据时，删除全部权限，重新添加部门权限
+    if data_scope == "2" {
+        // 删除全部部门权限
+        sqlx::query_scalar!("delete from sys_role_dept where role_id=$1", role_id)
+            .execute(&mut txn)
+            .await?;
+        // 添加部门权限
+        let mut insert_sql =
+            String::from_str("INSERT INTO sys_role_dept (role_id,dept_id) VALUES")?;
+        for (i, dept) in req.dept_ids.iter().enumerate() {
+            let dept_id = Uuid::parse_str(dept)?;
+            insert_sql.push_str(&format!("('{}','{}')", role_id, dept_id));
+            if i != req.dept_ids.len() - 1 {
+                insert_sql.push_str(",");
+            }
+        }
+        sqlx::query(&insert_sql).execute(&mut txn).await?;
+    }
+    txn.commit().await?;
+    Ok(format!("更新成功"))
 }
 
 async fn check_data_is_exist(db: &PgPool, role_name: String) -> Result<bool> {
@@ -229,4 +262,14 @@ pub struct DataScopeReq {
     pub role_id: String,
     pub data_scope: String,
     pub dept_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, FromRow)]
+pub struct SysRole {
+    pub role_name: String,
+    // pub role_key: String,
+    // pub list_order: i32,
+    // pub data_scope: String,
+    // pub status: String,
+    // pub remark: String,
 }
