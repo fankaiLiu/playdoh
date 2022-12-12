@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 use ahash::HashMap;
 use db::db::{SqlCommandExecutor, TransactionManager};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::{Arguments, FromRow, PgPool};
 
 use anyhow::{anyhow, Result};
@@ -134,6 +134,51 @@ pub async fn set_data_scope(db: &PgPool, req: DataScopeReq) -> Result<String> {
     Ok(format!("更新成功"))
 }
 
+pub async fn get_by_id(db: &PgPool, req: SearchReq) -> Result<Resp> {
+    if let Some(x) = req.role_id {
+        let role_id = Uuid::parse_str(&x)?;
+        let res= sqlx::query_as!(
+            Resp,
+            r#"
+            SELECT  role_id::text,role_name,role_key,data_scope,list_order,status,remark FROM "sys_role" WHERE role_id = $1"#,
+            role_id
+        ).fetch_optional(db).await?;
+        match res {
+            Some(x) => Ok(x),
+            None => Err(anyhow!("数据不存在")),
+        }
+    } else {
+        return Err(anyhow!("id不能为空"));
+    }
+}
+
+pub async fn get_all(db: &PgPool) -> Result<Vec<Resp>> {
+    let res = sqlx::query_as!(
+        Resp,
+        r#"select  role_id::text,role_name,role_key,data_scope,list_order,status,remark FROM "sys_role" order by list_order  ,role_id "#
+    ).fetch_all(db).await?;
+    Ok(res)
+}
+
+// pub async fn get_current_admin_role(db: &PgPool, user_id: &str) -> Result<String> {
+//     let user_id= Uuid::parse_str(user_id)?;
+//     let user = super::sys_user::get_by_id(db, &user_id).await?;
+//     Ok(user.role_id)
+// }
+
+pub async fn get_auth_users_by_role_id(db: &PgPool, role_id: &str) -> Result<Vec<String>> {
+    super::sys_user_role::get_user_ids_by_role_id(db, role_id).await
+}
+
+pub async fn add_role_by_user_id(db: &PgPool, user_id: &str, role_ids: Vec<String>, created_by: String) -> Result<()> {
+    let mut  txn = db.begin().await?;
+    super::sys_user_role::delete_user_role(&mut txn, user_id).await?;
+    //super::sys_user_role::edit_user_role(&txn, user_id, role_ids, &created_by).await?;
+    txn.commit().await?;
+    Ok(())
+}
+
+
 async fn check_data_is_exist(db: &PgPool, role_name: String) -> Result<bool> {
     // let s1 = SysRole::find().filter(sys_role::Column::RoleName.eq(role_name));
     let count = sqlx::query_scalar!(
@@ -163,8 +208,8 @@ async fn eidt_check_data_is_exist(
     .unwrap_or_default();
 
     let count2 = sqlx::query_scalar!(
-        r#"SELECT count(1) FROM "sys_role" WHERE role_name=$1 and role_id != $2 "#,
-        role_name,
+        r#"SELECT count(1) FROM "sys_role" WHERE role_key=$1 and role_id != $2 "#,
+        role_key,
         role_id
     )
     .fetch_one(db)
@@ -222,6 +267,28 @@ pub async fn get_permissions_data<'a, 'b>(
         }
     }
     Ok(res)
+}
+
+#[derive(Deserialize, Debug)]
+pub struct SearchReq {
+    pub role_id: Option<String>,
+    pub role_ids: Option<Vec<String>>,
+    pub role_key: Option<String>,
+    pub role_name: Option<String>,
+    pub status: Option<String>,
+    pub begin_time: Option<String>,
+    pub end_time: Option<String>,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct Resp {
+    pub role_id: Option<String>,
+    pub role_name: String,
+    pub role_key: String,
+    pub status: String,
+    pub list_order: i32,
+    pub remark: String,
+    pub data_scope: String,
 }
 
 #[derive(Deserialize, Clone, Debug)]
