@@ -112,13 +112,13 @@ pub async fn set_data_scope(db: &PgPool, req: DataScopeReq) -> Result<String> {
     )
     .execute(&mut txn)
     .await?;
-    // 当数据权限为自定义数据时，删除全部权限，重新添加部门权限
+    // When the data permission is custom data, delete all permissions and add departmental permissions again
     if data_scope == "2" {
-        // 删除全部部门权限
+        // Delete all departmental permissions
         sqlx::query_scalar!("delete from sys_role_dept where role_id=$1", role_id)
             .execute(&mut txn)
             .await?;
-        // 添加部门权限
+        // Add departmental permissions
         let mut insert_sql =
             String::from_str("INSERT INTO sys_role_dept (role_id,dept_id) VALUES")?;
         for (i, dept) in req.dept_ids.iter().enumerate() {
@@ -170,17 +170,53 @@ pub async fn get_auth_users_by_role_id(db: &PgPool, role_id: &str) -> Result<Vec
     super::sys_user_role::get_user_ids_by_role_id(db, role_id).await
 }
 
-pub async fn add_role_by_user_id(db: &PgPool, user_id: &str, role_ids: Vec<String>, created_by: String) -> Result<()> {
-    let mut  txn = db.begin().await?;
+pub async fn add_role_by_user_id(
+    db: &PgPool,
+    user_id: &str,
+    role_ids: Vec<String>,
+    created_by: String,
+) -> Result<()> {
+    let mut txn = db.begin().await?;
     super::sys_user_role::delete_user_role(&mut txn, user_id).await?;
-    //super::sys_user_role::edit_user_role(&txn, user_id, role_ids, &created_by).await?;
+    super::sys_user_role::edit_user_role(&mut txn, user_id, role_ids, &created_by).await?;
     txn.commit().await?;
     Ok(())
 }
 
+pub async fn add_role_with_user_ids(
+    db: &PgPool,
+    user_ids: Vec<String>,
+    role_id: String,
+    created_by: String,
+) -> Result<()> {
+    let mut txn = db.begin().await?;
+    super::sys_user_role::add_role_by_lot_user_ids(&mut txn, user_ids, role_id, &created_by)
+        .await?;
+    txn.commit().await?;
+    Ok(())
+}
+
+pub async fn cancel_auth_user(db: &PgPool, req: AddOrCancelAuthRoleReq) -> Result<()> {
+    let mut txn = db.begin().await?;
+    super::sys_user_role::delete_user_role_by_user_ids(
+        &mut txn,
+        req.clone().user_ids,
+        Some(req.role_id.clone()),
+    )
+    .await?;
+    // If the user cancels the authorization of the role, set the user's role to null
+    let ids = req
+        .user_ids
+        .into_iter()
+        .map(|x| x.to_string())
+        .collect::<Vec<String>>()
+        .join(",");
+    //sqlx::query_scalar!("update sys_user set role_id  = null where user_id = ANY (UNNEST(ARRAY[$1] and  role_id = $2) ",ids,req.role_id ).execute(&mut txn).await?;
+    txn.commit().await?;
+    Ok(())
+}
 
 async fn check_data_is_exist(db: &PgPool, role_name: String) -> Result<bool> {
-    // let s1 = SysRole::find().filter(sys_role::Column::RoleName.eq(role_name));
     let count = sqlx::query_scalar!(
         r#"
         SELECT count(1) FROM "sys_role" WHERE role_name = $1"#,
@@ -334,9 +370,15 @@ pub struct DataScopeReq {
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, FromRow)]
 pub struct SysRole {
     pub role_name: String,
-    // pub role_key: String,
-    // pub list_order: i32,
-    // pub data_scope: String,
-    // pub status: String,
-    // pub remark: String,
+    pub role_key: String,
+    pub list_order: i32,
+    pub data_scope: String,
+    pub status: String,
+    pub remark: String,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct AddOrCancelAuthRoleReq {
+    pub user_ids: Vec<String>,
+    pub role_id: String,
 }
