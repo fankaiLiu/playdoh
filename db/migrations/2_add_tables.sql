@@ -133,7 +133,7 @@ create table "sys_user_role" (
 alter table
     "sys_user_role"
 add
-    constraint "sys_role_user_user_id_fkey" foreign key (user_id) references "user" (user_id) on delete cascade on update cascade;
+    constraint "sys_role_user_user_id_fkey" foreign key (user_id) references "sys_user" (user_id) on delete cascade on update cascade;
 
 alter table
     "sys_user_role"
@@ -171,7 +171,7 @@ create table "sys_dept" (
     updated_by uuid not null,
     created_at timestamptz not null default now(),
     updated_at timestamptz,
-    deleted_at timestamptz default null
+    deleted_at timestamptz
 );
 
 SELECT
@@ -219,7 +219,7 @@ create table "sys_post"(
     remark text default null,
     created_by uuid default null,
     updated_by uuid default null,
-    created_at uuid timestamptz not null default now(),
+    created_at timestamptz not null default now(),
     updated_at timestamptz default null,
     deleted_at timestamptz default null
 );
@@ -253,7 +253,7 @@ CREATE TABLE "sys_user_dept" (
 alter table
     "sys_user_dept"
 add
-    constraint "sys_user_dept_user_id_fkey" foreign key (user_id) references "user" (user_id) on delete cascade on update cascade;
+    constraint "sys_user_dept_user_id_fkey" foreign key (user_id) references "sys_user" (user_id) on delete cascade on update cascade;
 
 alter table
     "sys_user_dept"
@@ -270,9 +270,9 @@ CREATE TABLE "sys_user_post" (
 alter table
     "sys_user_post"
 add
-    constraint "sys_user_post_user_id_fkey" foreign key (user_id) references "user" (user_id) on delete cascade on update cascade;
+    constraint "sys_user_post_user_id_fkey" foreign key (user_id) references "sys_user" (user_id) on delete cascade on update cascade;
 
 alter table
     "sys_user_post"
 add
-    constraint "sys_user_post_post_id_fkey" foreign key (post_id) references "sys_post" (post_id) on delete cascade on update cascad
+    constraint "sys_user_post_post_id_fkey" foreign key (post_id) references "sys_post" (post_id) on delete cascade on update cascade;
