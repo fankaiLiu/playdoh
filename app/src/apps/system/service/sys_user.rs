@@ -18,7 +18,6 @@ use hyper::HeaderMap;
 use serde::Deserialize;
 use serde::Serialize;
 use sqlx::{Pool, Postgres};
-use time::OffsetDateTime;
 
 use super::sys_dept::DeptResp;
 // pub async fn create_user(db: &Pool<Postgres>, req: NewUser) -> Result<CreateUser> {
@@ -133,7 +132,7 @@ use super::sys_dept::DeptResp;
 pub async fn get_by_id(db: &Pool<Postgres>, u_id: &Uuid) -> Result<UserWithDept> {
     let user = sqlx::query_as!(
         UserResp,
-        r#"select user_id , email, user_name, bio,user_nickname,gender,dept_id,remark,is_admin,phone_num,role_id from "sys_user"  where user_id = $1
+        r#"select user_id , email, user_name, bio,user_nickname,gender,dept_id,remark,is_admin,phone_num,role_id,created_at from "sys_user"  where user_id = $1
         "#,
         u_id.clone(),
     )
@@ -242,10 +241,10 @@ pub struct UserResp {
     pub is_admin: i32,
     pub phone_num: Option<String>,
     pub role_id: Uuid,
-    //pub created_at: String,
+    pub created_at:time::OffsetDateTime,
 }
 
- 
+
 
 #[derive(serde::Deserialize)]
 pub struct LoginUser {
