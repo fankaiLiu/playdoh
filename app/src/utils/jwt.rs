@@ -14,7 +14,7 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::apps::system::check_user_online;
+//use crate::apps::system::check_user_online;
 
 pub static KEYS: Lazy<Keys> = Lazy::new(|| {
     let secret = &CFG.jwt.jwt_secret;
@@ -73,7 +73,8 @@ where
                 let token_id = token.claims.token_id.clone();
                 let db = DB.get_or_init(db_conn).await;
 
-                let (x, _) = check_user_online(db, token_id.clone()).await;
+                //let (x, _) = check_user_online(db, token_id.clone()).await;
+                let x=false;
                 print!("================================{}", token_id);
                 print!("================================{}", x);
                 if x {

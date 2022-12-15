@@ -37,7 +37,8 @@ async fn main() {
     let addr = SocketAddr::from((configs.bind, configs.port));
     tracing::debug!("listening on {}", addr);
 
-    let app = Router::new().nest("/", apps::api());
+    //let app = Router::new().nest("/", apps::api());
+    let app = Router::new();
 
     axum::Server::bind(&addr)
         .serve(app.into_make_service())

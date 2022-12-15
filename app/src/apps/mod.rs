@@ -33,9 +33,9 @@ fn auth_api() -> Router {
     // router
     //     .layer(middleware::from_fn(auth_fn_mid))
     //     .layer(middleware::from_fn(ctx_fn_mid))
-    system::system_api()
-        .layer(middleware::from_fn(oper_log_fn_mid))
-        .layer(middleware::from_fn(ctx_fn_mid))
-        .layer(middleware::from_extractor::<Claims>())
+    // system::system_api()
+    //     .layer(middleware::from_fn(oper_log_fn_mid))
+    //     .layer(middleware::from_fn(ctx_fn_mid))
+    //     .layer(middleware::from_extractor::<Claims>())
     //system::system_api()
 }
