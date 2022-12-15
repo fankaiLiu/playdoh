@@ -9,6 +9,7 @@ use anyhow::Context;
 use anyhow::Result;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash};
+use uuid::Uuid;
 
 use chrono::NaiveDateTime;
 use db::db_conn; 
@@ -16,8 +17,8 @@ use db::DB;
 use hyper::HeaderMap;
 use serde::Deserialize;
 use serde::Serialize;
-use sqlx::types::Uuid;
 use sqlx::{Pool, Postgres};
+use time::OffsetDateTime;
 
 use super::sys_dept::DeptResp;
 // pub async fn create_user(db: &Pool<Postgres>, req: NewUser) -> Result<CreateUser> {
@@ -81,17 +82,17 @@ use super::sys_dept::DeptResp;
 //     Ok("ok".to_string())
 // }
 
-pub async fn delete(db: &Pool<Postgres>, id: String) -> Result<String> {
-    let user_id = Uuid::parse_str(&id)?;
-    let _user_id = sqlx::query_scalar!(
-        // language=PostgreSQL
-        r#"delete from "sys_user" where user_id = $1 returning user_id"#,
-        user_id
-    )
-    .fetch_one(db)
-    .await?;
-    Ok("ok".to_string())
-}
+// pub async fn delete(db: &Pool<Postgres>, id: String) -> Result<String> {
+//     let user_id = Uuid::parse_str(&id)?;
+//     let _user_id = sqlx::query_scalar!(
+//         // language=PostgreSQL
+//         r#"delete from "sys_user" where user_id = $1 returning user_id"#,
+//         user_id
+//     )
+//     .fetch_one(db)
+//     .await?;
+//     Ok("ok".to_string())
+// }
 
 // pub async fn login(db: &Pool<Postgres>, req: LoginUser, header: HeaderMap) -> Result<AuthBody> {
 //     let msg = "登录成功".to_string();
@@ -132,7 +133,7 @@ pub async fn delete(db: &Pool<Postgres>, id: String) -> Result<String> {
 pub async fn get_by_id(db: &Pool<Postgres>, u_id: &Uuid) -> Result<UserWithDept> {
     let user = sqlx::query_as!(
         UserResp,
-        r#"select cast(user_id as varchar), email, user_name, bio, gender,avatar,user_nickname,remark,is_admin,phone_num, dept_id, role_id, created_at from "sys_user"  where user_id = $1
+        r#"select user_id , email, user_name, bio,user_nickname,gender,dept_id,remark,is_admin,phone_num,role_id from "sys_user"  where user_id = $1
         "#,
         u_id.clone(),
     )
@@ -170,29 +171,7 @@ async fn verify_password(password: String, password_hash: String) -> Result<()> 
     .context("panic in verifying password hash")?
 }
 
-pub async fn set_login_info(
-    header: HeaderMap,
-    u_id: String,
-    _user: String,
-    _msg: String,
-    status: String,
-    token_id: Option<String>,
-    token: Option<AuthBody>,
-) {
-    let u = utils::get_client_info(header).await;
-    // 写入登录日志
-    let _u2 = u.clone();
-    let _status2 = status.clone();
-    // 如果成功，写入在线日志
-    if status == "1" {
-        if let (Some(token_id), Some(token)) = (token_id, token) {
-            super::sys_user_online::add(u, u_id, token_id, token.clone().exp).await;
-        }
-    };
-    // tokio::spawn(async move {
-    //     super::sys_login_log::add(u2, user, msg, status2).await;
-    // });
-}
+// cla
 #[derive(serde::Deserialize)]
 pub struct SearchResult {
     pub username: String,
@@ -250,30 +229,32 @@ pub struct CreateUser {
 // );
 
 
-#[derive(Debug,Deserialize, Serialize,Clone)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct UserResp {
-    pub user_id: Option<String>,
+    pub user_id: Uuid,
     pub email: String,
     pub user_name: String,
     pub bio: String,
-    pub user_nickname: String,
+    pub user_nickname: Option<String>,
     pub gender: i64,
-    pub dept_id: String,
+    pub dept_id: Uuid,
     pub remark: Option<String>,
-    pub is_admin: String,
+    pub is_admin: i32,
     pub phone_num: Option<String>,
-    pub role_id: String,
-    pub created_at: NaiveDateTime,
+    pub role_id: Uuid,
+    //pub created_at: String,
 }
+
+ 
 
 #[derive(serde::Deserialize)]
 pub struct LoginUser {
     email: String,
     password: String,
 }
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone)]
 pub struct UserWithDept {
-    #[serde(flatten)]
+    //#[serde(flatten)]
     pub user: UserResp,
     pub dept: DeptResp,
 }

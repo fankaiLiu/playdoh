@@ -37,5 +37,5 @@ reqwest = "0.11.13"
 user-agent-parser = "0.3.4"
 oso = "0.26.3"
 oso-derive = "0.26.3"
-#uuid = { version = "0.8", features = ["serde"] }
+uuid = { version = "1.0", features = ["serde"] }
 
