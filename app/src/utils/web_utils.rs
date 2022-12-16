@@ -1,10 +1,10 @@
 use std::{borrow::Cow, collections::HashMap};
 
 use configs::CFG;
+use db::common::client::{UserAgentInfo, ClientInfo, ClientNetInfo};
 use headers::HeaderMap;
 use user_agent_parser::UserAgentParser;
 
-use crate::common::client::{ClientInfo, ClientNetInfo, UserAgentInfo};
 
 pub async fn get_client_info(header: HeaderMap) -> ClientInfo {
     // 改为 header 中获取

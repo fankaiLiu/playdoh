@@ -9,6 +9,9 @@ use anyhow::Context;
 use anyhow::Result;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash};
+use db::system::models::sys_user::LoginUser;
+use db::system::models::sys_user::UserResp;
+use db::system::models::sys_user::UserWithDept;
 use uuid::Uuid;
 
 use chrono::NaiveDateTime;
@@ -93,42 +96,42 @@ use super::sys_dept::DeptResp;
 //     Ok("ok".to_string())
 // }
 
-// pub async fn login(db: &Pool<Postgres>, req: LoginUser, header: HeaderMap) -> Result<AuthBody> {
-//     let msg = "登录成功".to_string();
-//     let status = "1".to_string();
-//     let user = sqlx::query!(
-//         r#"
-//             select user_id, email, username, bio, image, password_hash 
-//             from "sys_user" where email = $1
-//         "#,
-//         req.email,
-//     )
-//     .fetch_optional(db)
-//     .await?
-//     .ok_or(Error::unprocessable_entity([("email", "does not exist")]))?;
+pub async fn login(db: &Pool<Postgres>, req: LoginUser, header: HeaderMap) -> Result<AuthBody> {
+    let msg = "登录成功".to_string();
+    let status = "1".to_string();
+    let user = sqlx::query!(
+        r#"
+            select user_id, email, user_name, bio, password_hash 
+            from "sys_user" where email = $1
+        "#,
+        req.email,
+    )
+    .fetch_optional(db)
+    .await?
+    .ok_or(Error::unprocessable_entity([("email", "does not exist")]))?;
 
-//     verify_password(req.password, user.password_hash).await?;
+    verify_password(req.password, user.password_hash).await?;
 
-//     let claims = AuthPayload {
-//         user_id: user.user_id.to_string(),
-//         name: user.username.clone(),
-//     };
-//     let token_id = scru128::new_string();
-//     let token = utils::authorize(claims.clone(), token_id.clone())
-//         .await
-//         .unwrap();
-//     set_login_info(
-//         header,
-//         user.user_id.to_string(),
-//         user.username.clone(),
-//         msg.clone(),
-//         status.clone(),
-//         Some(token_id),
-//         Some(token.clone()),
-//     )
-//     .await;
-//     Ok(token)
-// }
+    let claims = AuthPayload {
+        user_id: user.user_id.to_string(),
+        name: user.user_name.clone(),
+    };
+    let token_id = scru128::new_string();
+    let token = utils::authorize(claims.clone(), token_id.clone())
+        .await
+        .unwrap();
+    set_login_info(
+        header,
+        user.user_id.to_string(),
+        user.user_name.clone(),
+        msg.clone(),
+        status.clone(),
+        Some(token_id),
+        Some(token.clone()),
+    )
+    .await;
+    Ok(token)
+}
 pub async fn get_by_id(db: &Pool<Postgres>, u_id: &Uuid) -> Result<UserWithDept> {
     let user = sqlx::query_as!(
         UserResp,
@@ -169,42 +172,37 @@ async fn verify_password(password: String, password_hash: String) -> Result<()> 
     .await
     .context("panic in verifying password hash")?
 }
-
-// cla
-#[derive(serde::Deserialize)]
-pub struct SearchResult {
-    pub username: String,
-    pub email: String,
+pub async fn set_login_info(
+    header: HeaderMap,
+    u_id: String,
+    _user: String,
+    _msg: String,
+    status: String,
+    token_id: Option<String>,
+    token: Option<AuthBody>,
+) {
+    let u = utils::get_client_info(header).await;
+    // 写入登录日志
+    let _u2 = u.clone();
+    let _status2 = status.clone();
+    // 如果成功，写入在线日志
+    if status == "1" {
+        if let (Some(token_id), Some(token)) = (token_id, token) {
+            super::sys_user_online::add(u, u_id, token_id, token.clone().exp).await;
+        }
+    };
+    // tokio::spawn(async move {
+    //     super::sys_login_log::add(u2, user, msg, status2).await;
+    // });
 }
+// cla
+
 #[derive(serde::Deserialize)]
 pub struct OrdersRequest {}
 pub struct UserPageClient {}
 
-#[derive(serde::Deserialize)]
-pub struct NewUser {
-    username: String,
-    email: String,
-    password: String,
-}
 
-#[derive(serde::Deserialize)]
-pub struct UpdateUser {
-    id: String,
-    username: String,
-    email: String,
-    password: String,
-    bio: String,
-    image: Option<String>,
-}
 
-#[derive(serde::Serialize, serde::Deserialize)]
-pub struct CreateUser {
-    email: String,
-    token: String,
-    username: String,
-    bio: String,
-    image: Option<String>,
-}
 
 // create table "sys_user" (
 //     user_id uuid primary key default uuid_generate_v1mc(),
@@ -226,34 +224,3 @@ pub struct CreateUser {
 //     updated_at timestamptz,
 //     deleted_at timestamptz
 // );
-
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct UserResp {
-    pub user_id: Uuid,
-    pub email: String,
-    pub user_name: String,
-    pub bio: String,
-    pub user_nickname: Option<String>,
-    pub gender: i64,
-    pub dept_id: Uuid,
-    pub remark: Option<String>,
-    pub is_admin: i32,
-    pub phone_num: Option<String>,
-    pub role_id: Uuid,
-    pub created_at:time::OffsetDateTime,
-}
-
-
-
-#[derive(serde::Deserialize)]
-pub struct LoginUser {
-    email: String,
-    password: String,
-}
-#[derive(Debug, Clone)]
-pub struct UserWithDept {
-    //#[serde(flatten)]
-    pub user: UserResp,
-    pub dept: DeptResp,
-}

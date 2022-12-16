@@ -1,5 +1,4 @@
 pub mod apps;
-pub mod common;
 pub mod custom_response;
 pub mod error;
 pub mod pagination;

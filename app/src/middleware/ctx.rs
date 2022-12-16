@@ -6,8 +6,8 @@ use axum::{
     response::IntoResponse,
 };
 use bytes::Bytes;
+use db::common::ctx::{UserInfo, ReqCtx};
 
-use crate::{common::ctx::ReqCtx, utils::jwt::UserInfo};
 
 /// req上下文注入中间件 同时进行jwt授权验证
 pub async fn ctx_fn_mid(
