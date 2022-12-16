@@ -50,12 +50,7 @@ pub struct Claims {
     pub exp: i64,
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct UserInfo {
-    pub id: String,
-    pub token_id: String,
-    pub name: String,
-}
+
 
 #[axum::async_trait]
 impl<S> FromRequestParts<S> for Claims
