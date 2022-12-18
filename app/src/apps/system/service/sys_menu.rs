@@ -466,6 +466,23 @@ async fn check_router_is_exist_update(db: &Pool<Postgres>, req: UpdateReq) -> Re
     .unwrap_or(0);
     Ok(count1 > 0 || count2 > 0)
 }
+
+pub async fn get_role_permissions(db: &Pool<Postgres>, role_id: &Uuid) -> Result<(Vec<String>, Vec<Uuid>)> {
+    let res=sqlx::query!(
+        // language=PostgreSQL
+        r#"SELECT api,id FROM public.sys_menu WHERE api IN (SELECT api FROM public.sys_role_api WHERE role_id=$1)"#,
+        role_id
+    ).fetch_all(db).await?;
+
+    let mut apis: Vec<String> = Vec::new();
+    let mut api_ids: Vec<Uuid> = Vec::new();
+    for x in res {
+        apis.push(x.api.clone());
+        api_ids.push(x.id.clone());
+    }
+    Ok((apis, api_ids))
+}
+
 #[derive(Serialize, Clone, Debug)]
 pub struct MenuRelated {
     #[serde(flatten)]

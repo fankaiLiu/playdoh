@@ -3,6 +3,8 @@ use axum::{
     Router,
 };
 mod sys_user; // 用户管理
+mod sys_online;
+mod sys_role;
 pub use sys_user::login;
 
 pub fn system_api() -> Router {
@@ -12,7 +14,8 @@ pub fn system_api() -> Router {
 fn sys_user_api() -> Router {
     Router::new()
         .route("/", post(sys_user::create)) // 添加用户
-        // .route("/list", get(sys_user::list))
-        // .route("/", delete(sys_user::delete))
-        // .route("/", put(sys_user::update))
+        .route("/list", get(sys_user::list))
+        .route("/", delete(sys_user::delete))
+        .route("/", put(sys_user::update))
+        .route("/logout", post(sys_online::log_out))
 }

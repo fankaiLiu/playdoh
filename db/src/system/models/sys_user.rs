@@ -13,12 +13,15 @@ pub struct NewUser {
 
 #[derive(serde::Deserialize)]
 pub struct UpdateUser {
-    id: String,
-    username: String,
-    email: String,
-    password: String,
-    bio: String,
-    image: Option<String>,
+    pub user_id: Uuid,
+    pub user_name: String,
+    pub email: String,
+    pub bio: String,
+    pub avatar: Option<String>,
+    pub gender: i64,
+    pub remark: Option<String>,
+    pub phone_num: Option<String>,
+    pub user_nickname: Option<String>,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -68,4 +71,17 @@ impl UserWithDept {
     pub fn new(user: UserResp, dept: DeptResp) -> Self {
         Self { user, dept }
     }
+}
+#[derive(Deserialize, Debug)]
+pub struct SearchReq {
+    pub user_id: Option<Uuid>,
+    pub role_id: Option<Uuid>,
+    pub user_ids: Option<Vec<Uuid>>,
+    pub user_name: Option<String>,
+    pub phone_num: Option<String>,
+    pub user_nickname: Option<String>,
+    pub user_status: Option<String>,
+    pub dept_id: Option<Uuid>,
+    pub begin_time: Option<String>,
+    pub end_time: Option<String>,
 }

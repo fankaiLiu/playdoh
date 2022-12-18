@@ -1,6 +1,6 @@
 use crate::{
     apps::system::service::{
-        self,
+        self, sys_user::UserPageResponse,
     },
     custom_response::{CustomResponse, CustomResponseBuilder},
     pagination::PageParams,
@@ -11,7 +11,7 @@ use axum::{
     extract::{Query},
     Json,
 };
-use db::{db_conn, DB, system::models::sys_user::{NewUser, CreateUser, LoginUser}};
+use db::{db_conn, DB, system::models::sys_user::{NewUser, CreateUser, LoginUser, UpdateUser}};
 use headers::HeaderMap;
 pub async fn create(Json(req): Json<NewUser>) -> ResponseResult<CreateUser> {
     let db = DB.get_or_init(db_conn).await;
@@ -19,22 +19,22 @@ pub async fn create(Json(req): Json<NewUser>) -> ResponseResult<CreateUser> {
     Ok(CustomResponseBuilder::new().body(res).build())
 }
 
-// pub async fn update(Json(req): Json<UpdateUser>) -> ResponseResult<String> {
-//     let db = DB.get_or_init(db_conn).await;
-//     let res = service::sys_user::update_user(db, req).await?;
-//     Ok(CustomResponseBuilder::new().body(res).build())
-// }
+pub async fn update(Json(req): Json<UpdateUser>) -> ResponseResult<String> {
+    let db = DB.get_or_init(db_conn).await;
+    let res = service::sys_user::update_user(db, req).await?;
+    Ok(CustomResponseBuilder::new().body(res).build())
+}
 
-// pub async fn delete(id: String) -> ResponseResult<String> {
-//     let db = DB.get_or_init(db_conn).await;
-//     let res = service::sys_user::delete(db, id).await?;
-//     Ok(CustomResponseBuilder::new().body(res).build())
-// }
+pub async fn delete(id: String) -> ResponseResult<String> {
+    let db = DB.get_or_init(db_conn).await;
+    let res = service::sys_user::delete(db, id).await?;
+    Ok(CustomResponseBuilder::new().body(res).build())
+}
 
-// pub async fn list(Query(request): Query<PageParams>) -> ResponseResult<UserPageResponse> {
-//     let res = service::sys_user::page(request).await.unwrap();
-//     Ok(CustomResponseBuilder::new().body(res).build())
-// }
+pub async fn list(Query(request): Query<PageParams>) -> ResponseResult<UserPageResponse> {
+    let res = service::sys_user::page(request).await.unwrap();
+    Ok(CustomResponseBuilder::new().body(res).build())
+}
 
 pub async fn login(
     header: HeaderMap,

@@ -47,16 +47,16 @@ pub async fn check_online(db: &Pool<Postgres>, token_id: String) -> (bool, Optio
     (sys_user_online.is_some(), sys_user_online)
 }
 
-// pub async fn log_out(db: &Pool<Postgres>, token_id: String) -> Result<String> {
-//     sqlx::query!(
-//         r#"
-//         DELETE FROM "sys_oper_online" WHERE token_id = $1"#,
-//         token_id,
-//     )
-//     .execute(db)
-//     .await?;
-//     Ok("成功退出登录".to_string())
-// }
+pub async fn log_out(db: &Pool<Postgres>, token_id: String) -> Result<String> {
+    sqlx::query!(
+        r#"
+        DELETE FROM "sys_user_online" WHERE token_id = $1"#,
+        token_id,
+    )
+    .execute(db)
+    .await?;
+    Ok("成功退出登录".to_string())
+}
 
 
 pub async fn add(req: ClientInfo, u_id: String, token_id: String, token_exp: i64) {
@@ -86,16 +86,16 @@ pub async fn add(req: ClientInfo, u_id: String, token_id: String, token_exp: i64
     .await;
 }
 
-// pub async fn update_online(token_id: String, token_exp: i64) -> Result<String> {
-//     let db = DB.get_or_init(db_conn).await;
-//     sqlx::query!(
-//         r#"
-//         UPDATE "sys_oper_online" SET token_exp = $1 WHERE token_id = $2"#,
-//         token_exp,
-//         token_id,
-//     )
-//     .execute(db)
-//     .await?;
-//     Ok("token更新成功".to_string())
-// }
+pub async fn update_online(token_id: String, token_exp: i64) -> Result<String> {
+    let db = DB.get_or_init(db_conn).await;
+    sqlx::query!(
+        r#"
+        UPDATE "sys_user_online" SET token_exp = $1 WHERE token_id = $2"#,
+        token_exp,
+        token_id,
+    )
+    .execute(db)
+    .await?;
+    Ok("token更新成功".to_string())
+}
 
