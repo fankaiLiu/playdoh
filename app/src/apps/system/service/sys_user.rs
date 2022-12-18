@@ -9,7 +9,10 @@ use anyhow::Context;
 use anyhow::Result;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash};
+use db::system::models::sys_dept::DeptResp;
+use db::system::models::sys_user::CreateUser;
 use db::system::models::sys_user::LoginUser;
+use db::system::models::sys_user::NewUser;
 use db::system::models::sys_user::UserResp;
 use db::system::models::sys_user::UserWithDept;
 use uuid::Uuid;
@@ -22,34 +25,23 @@ use serde::Deserialize;
 use serde::Serialize;
 use sqlx::{Pool, Postgres};
 
-use super::sys_dept::DeptResp;
-// pub async fn create_user(db: &Pool<Postgres>, req: NewUser) -> Result<CreateUser> {
-//     let password_hash = hash_password(req.password).await?;
-
-//     // I personally prefer using queries inline in request handlers as it's easier to understand the
-//     // query's semantics in the wider context of where it's invoked.
-//     //
-//     // Sometimes queries just get too darn big, though. In that case it may be a good idea
-//     // to move the query to a separate module.
-//     let _user_id = sqlx::query_scalar!(
-//         // language=PostgreSQL
-//         r#"insert into "sys_user" (username, email, password_hash) values ($1, $2, $3) returning user_id"#,
-//         req.username,
-//         req.email,
-//         password_hash
-//     )
-//     .fetch_one(db)
-//     .await?;
-
-//     Ok(CreateUser {
-//         email: req.email,
-//         // token: AuthUser { user_id }.to_jwt(&db),
-//         token: "token".to_string(),
-//         username: req.username,
-//         bio: "".to_string(),
-//         image: None,
-//     })
-//}
+pub async fn create_user(db: &Pool<Postgres>, req: NewUser) -> Result<CreateUser> {
+    let password_hash = hash_password(req.password).await?;
+    let _user_id = sqlx::query_scalar!(
+        // language=PostgreSQL
+        r#"insert into "sys_user" (user_name, email, password_hash,is_admin,status,gender) values ($1, $2, $3,0,0,0) returning user_id"#,
+        req.user_name,
+        req.email,
+        password_hash
+    )
+    .fetch_one(db)
+    .await?;
+    Ok(CreateUser {
+        email: req.email,
+        token: "token".to_string(),
+        user_name: req.user_name,
+    })
+}
 // pub type UserPageResponse = PageTurnResponse<User>;
 // pub async fn page(req: PageParams) -> Result<UserPageResponse> {
 //     let db = DB.get_or_init(db_conn).await;
@@ -132,6 +124,15 @@ pub async fn login(db: &Pool<Postgres>, req: LoginUser, header: HeaderMap) -> Re
     .await;
     Ok(token)
 }
+// pub dept_id: Uuid,
+// pub parent_id: String,
+// pub dept_name: String,
+// pub order_num: i32,
+// pub leader: Option<String>,
+// pub phone: Option<String>,
+// pub email: Option<String>,
+// pub created_at: time::OffsetDateTime,
+// pub status: String,
 pub async fn get_by_id(db: &Pool<Postgres>, u_id: &Uuid) -> Result<UserWithDept> {
     let user = sqlx::query_as!(
         UserResp,
@@ -139,9 +140,16 @@ pub async fn get_by_id(db: &Pool<Postgres>, u_id: &Uuid) -> Result<UserWithDept>
         "#,
         u_id.clone(),
     )
-    .fetch_optional(db)
+    .fetch_one(db)
     .await?;
-    todo!()
+    let dept=sqlx::query_as!(
+        DeptRessp,
+        r#"select dept_id , parent_id, dept_name, order_num,leader,phone,email,created_at,status from "sys_dept"  where dept_id = $1
+        "#,
+        user.clone().dept_id,
+    ).fetch_one(db).await?;
+    let res=UserWithDept::new(user, dept);
+    Ok(res)
 }
 
 async fn hash_password(password: String) -> Result<String> {
