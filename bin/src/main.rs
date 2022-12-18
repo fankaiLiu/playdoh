@@ -26,19 +26,14 @@ async fn main() {
         .with(EnvFilter::from_default_env().add_directive(log_env.into()))
         .with(fmt::Layer::default().with_writer(std_non_blocking).event_format(format.clone()).pretty())
         .with(fmt::Layer::default().with_writer(non_blocking).event_format(format))
-        // .with(console_layer)
+        //.with(console_layer)
         ;
     tracing::subscriber::set_global_default(logger).unwrap();
     dbg!(configs);
-
-    // let app = Router::new()
-    //     // `GET /` goes to `root`
-    //     .route("/", get(root));
     let addr = SocketAddr::from((configs.bind, configs.port));
     tracing::debug!("listening on {}", addr);
 
-    //let app = Router::new().nest("/", apps::api());
-    let app = Router::new();
+    let app = Router::new().nest("/", apps::api());
 
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
@@ -46,8 +41,4 @@ async fn main() {
         .unwrap();
 }
 
-// basic handler that responds with a static string
-async fn root() -> &'static str {
-    let _db = DB.get_or_init(db_conn).await;
-    "Hello, World!"
-}
+ 

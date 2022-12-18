@@ -5,7 +5,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeptResp {
     pub dept_id: Uuid,
-    pub parent_id: String,
+    pub parent_id: Option<Uuid>,
     pub dept_name: String,
     pub order_num: i32,
     pub leader: Option<String>,

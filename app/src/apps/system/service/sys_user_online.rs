@@ -1,5 +1,5 @@
 use anyhow::Result;
-use db::{db_conn, DB};
+use db::{db_conn, DB, system::models::sys_user_online::SysUserOnline};
 use sqlx::{types::Uuid, Pool, Postgres};
 use time::OffsetDateTime;
 use db::common::client::ClientInfo;
@@ -20,32 +20,32 @@ use db::common::client::ClientInfo;
 // //     }
 // // }
 
-// pub async fn check_online(db: &Pool<Postgres>, token_id: String) -> (bool, Option<SysUserOnline>) {
-//     let sys_user_online = sqlx::query_as!(
-//         SysUserOnline,
-//         r#"
-//         SELECT 
-//             id,
-//             user_id,
-//             token_id,
-//             token_exp,
-//             login_time,
-//             user_name,
-//             dept_name,
-//             net,
-//             ipaddr,
-//             login_location,
-//             device,
-//             browser,
-//             os
-//         FROM "sys_oper_online" WHERE token_id = $1"#,
-//         token_id,
-//     )
-//     .fetch_optional(db)
-//     .await
-//     .unwrap();
-//     (sys_user_online.is_some(), sys_user_online)
-// }
+pub async fn check_online(db: &Pool<Postgres>, token_id: String) -> (bool, Option<SysUserOnline>) {
+    let sys_user_online = sqlx::query_as!(
+        SysUserOnline,
+        r#"
+        SELECT 
+            id,
+            user_id,
+            token_id,
+            token_exp,
+            login_time,
+            user_name,
+            dept_name,
+            net,
+            ipaddr,
+            login_location,
+            device,
+            browser,
+            os
+        FROM "sys_user_online" WHERE token_id = $1"#,
+        token_id,
+    )
+    .fetch_optional(db)
+    .await
+    .unwrap();
+    (sys_user_online.is_some(), sys_user_online)
+}
 
 // pub async fn log_out(db: &Pool<Postgres>, token_id: String) -> Result<String> {
 //     sqlx::query!(
@@ -99,18 +99,3 @@ pub async fn add(req: ClientInfo, u_id: String, token_id: String, token_exp: i64
 //     Ok("token更新成功".to_string())
 // }
 
-// pub struct SysUserOnline {
-//     pub id: Uuid,
-//     pub user_id: Uuid,
-//     pub token_id: String,
-//     pub token_exp: i64,
-//     pub login_time: OffsetDateTime,
-//     pub user_name: String,
-//     pub dept_name: Option<String>,
-//     pub net: String,
-//     pub ipaddr: String,
-//     pub login_location: String,
-//     pub device: String,
-//     pub browser: String,
-//     pub os: String,
-// }

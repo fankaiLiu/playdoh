@@ -4,8 +4,8 @@ create table "sys_user" (
     user_nickname text collate "case_insensitive",
     email text collate "case_insensitive" unique not null,
     bio text not null default '',
-    role_id uuid not null,
-    dept_id uuid not null,
+    role_id uuid default null,
+    dept_id uuid default null,
     remark text collate "case_insensitive" default null,
     is_admin int not null,
     phone_num varchar(20) default null,
@@ -13,6 +13,7 @@ create table "sys_user" (
     last_login_time timestamptz default null,
     gender bigint not null,
     avatar text,
+    status int,
     password_hash text not null,
     created_at timestamptz not null default now(),
     updated_at timestamptz,
@@ -160,7 +161,7 @@ add
 
 create table "sys_dept" (
     dept_id uuid primary key default uuid_generate_v1mc(),
-    parent_id uuid not null,
+    parent_id uuid  default null,
     dept_name varchar(255) not null,
     order_num integer not null,
     leader varchar(255) default null,

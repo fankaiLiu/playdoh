@@ -6,9 +6,9 @@ use super::sys_dept::DeptResp;
 
 #[derive(serde::Deserialize)]
 pub struct NewUser {
-    username: String,
-    email: String,
-    password: String,
+    pub user_name: String,
+    pub email: String,
+    pub password: String,
 }
 
 #[derive(serde::Deserialize)]
@@ -23,11 +23,9 @@ pub struct UpdateUser {
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct CreateUser {
-    email: String,
-    token: String,
-    username: String,
-    bio: String,
-    image: Option<String>,
+    pub email: String,
+    pub token: String,
+    pub user_name: String,
 }
 
 
@@ -39,11 +37,11 @@ pub struct UserResp {
     pub bio: String,
     pub user_nickname: Option<String>,
     pub gender: i64,
-    pub dept_id: Uuid,
+    pub dept_id: Option<Uuid>,
     pub remark: Option<String>,
     pub is_admin: i32,
     pub phone_num: Option<String>,
-    pub role_id: Uuid,
+    pub role_id: Option<Uuid>,
     pub created_at:time::OffsetDateTime,
 }
 
@@ -65,4 +63,9 @@ pub struct UserWithDept {
     #[serde(flatten)]
     pub user: UserResp,
     pub dept: DeptResp,
+}
+impl UserWithDept {
+    pub fn new(user: UserResp, dept: DeptResp) -> Self {
+        Self { user, dept }
+    }
 }
