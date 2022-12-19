@@ -1,8 +1,7 @@
 use anyhow::Result;
 use sqlx::{postgres::PgArguments, types::Uuid, Arguments, PgPool, Postgres, Transaction};
 
-pub async fn get_user_ids_by_role_id(db: &PgPool, role_id: &str) -> Result<Vec<String>> {
-    let role_id = Uuid::parse_str(role_id)?;
+pub async fn get_user_ids_by_role_id(db: &PgPool, role_id: &Uuid) -> Result<Vec<Uuid>> {
     let ids = sqlx::query!(
         r#"
         SELECT user_id FROM sys_user_role WHERE role_id = $1
@@ -13,7 +12,7 @@ pub async fn get_user_ids_by_role_id(db: &PgPool, role_id: &str) -> Result<Vec<S
     .await
     .map(|rows| {
         rows.into_iter()
-            .map(|row| row.user_id.to_string())
+            .map(|row| row.user_id)
             .collect()
     })?;
     Ok(ids)
@@ -22,10 +21,9 @@ pub async fn get_user_ids_by_role_id(db: &PgPool, role_id: &str) -> Result<Vec<S
 // 删除用户角色
 pub async fn delete_user_role<'a, 'b>(
     db: &'a mut Transaction<'_, Postgres>,
-    user_id: &'b str,
+    user_id: &'b Uuid,
 ) -> Result<()> {
     // 先删除用户角色
-    let user_id = Uuid::parse_str(user_id)?;
     sqlx::query_scalar!(
         r#"
         DELETE FROM sys_user_role WHERE user_id = $1
@@ -39,11 +37,10 @@ pub async fn delete_user_role<'a, 'b>(
 // 添加修改用户角色
 pub async fn edit_user_role<'a, 'b>(
     db: &'a mut Transaction<'_, Postgres>,
-    user_id: &str,
-    role_ids: Vec<String>,
+    user_id: &Uuid,
+    role_ids: Vec<Uuid>,
     created_by: &str,
 ) -> Result<()> {
-    let user_id = Uuid::parse_str(user_id)?;
     let create_by = Uuid::parse_str(created_by)?;
     let mut insert_sql =
         String::from("INSERT INTO sys_user_role (user_id, role_id, created_bys) VALUES ");

@@ -166,14 +166,14 @@ pub async fn get_all(db: &PgPool) -> Result<Vec<Resp>> {
 //     Ok(user.role_id)
 // }
 
-pub async fn get_auth_users_by_role_id(db: &PgPool, role_id: &str) -> Result<Vec<String>> {
+pub async fn get_auth_users_by_role_id(db: &PgPool, role_id: &Uuid) -> Result<Vec<Uuid>> {
     super::sys_user_role::get_user_ids_by_role_id(db, role_id).await
 }
 
 pub async fn add_role_by_user_id(
     db: &PgPool,
-    user_id: &str,
-    role_ids: Vec<String>,
+    user_id: &Uuid,
+    role_ids: Vec<Uuid>,
     created_by: String,
 ) -> Result<()> {
     let mut txn = db.begin().await?;

@@ -1,4 +1,5 @@
 use serde::{Serialize, Deserialize};
+use sqlx::FromRow;
 use uuid::Uuid;
 
 use super::sys_dept::DeptResp;
@@ -32,7 +33,7 @@ pub struct CreateUser {
 }
 
 
-#[derive(Debug, Deserialize, Clone,Serialize)]
+#[derive(Debug, Deserialize, Clone,Serialize,FromRow)]
 pub struct UserResp {
     pub user_id: Uuid,
     pub email: String,

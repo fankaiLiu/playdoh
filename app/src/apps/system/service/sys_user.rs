@@ -1,3 +1,6 @@
+use std::ops::Add;
+use std::str::FromStr;
+
 use crate::pagination::PageParams;
 use crate::pagination::PageTurnResponse;
 use crate::pagination::Pagination;
@@ -10,15 +13,11 @@ use anyhow::Result;
 use argon2::password_hash::SaltString;
 use argon2::{Argon2, PasswordHash};
 use db::system::models::sys_dept::DeptResp;
-use db::system::models::sys_user::CreateUser;
-use db::system::models::sys_user::LoginUser;
-use db::system::models::sys_user::NewUser;
-use db::system::models::sys_user::UpdateUser;
-use db::system::models::sys_user::UserResp;
-use db::system::models::sys_user::UserWithDept;
+use db::system::models::sys_user::*;
+use sqlx::PgPool;
 use uuid::Uuid;
 
-use db::db_conn; 
+use db::db_conn;
 use db::DB;
 use hyper::HeaderMap;
 use sqlx::{Pool, Postgres};
@@ -59,8 +58,6 @@ pub async fn page(req: PageParams) -> Result<UserPageResponse> {
     Ok(UserPageResponse::new(tatal_count, users))
 }
 
-
- 
 pub async fn update_user(db: &Pool<Postgres>, req: UpdateUser) -> Result<String> {
     let _user_id = sqlx::query_scalar!(
         // language=PostgreSQL
@@ -144,7 +141,7 @@ pub async fn get_by_id(db: &Pool<Postgres>, u_id: &Uuid) -> Result<UserWithDept>
         "#,
         user.clone().dept_id,
     ).fetch_one(db).await?;
-    let res=UserWithDept::new(user, dept);
+    let res = UserWithDept::new(user, dept);
     Ok(res)
 }
 
@@ -199,7 +196,60 @@ pub async fn set_login_info(
     //     super::sys_login_log::add(u2, user, msg, status2).await;
     // });
 }
-// cla
+pub async fn get_un_auth_user(
+    db: &PgPool,
+    page_params: PageParams,
+    req: SearchReq,
+) -> Result<UserPageResponse> {
+    let pagination = Pagination::build_from_request_query(page_params)
+        .count(1)
+        .build();
+    let mut data_sql = String::from_str(
+        r#"select user_id , email, user_name, bio,user_nickname,gender,dept_id,remark,is_admin,phone_num,role_id,created_at from "sys_user" where deleted_at is null "#,
+    )?;
+    let mut count_sql =
+        String::from_str(r#"select count(*) from "sys_user" where deleted_at is null "#)?;
+    if let Some(x) = req.user_ids {
+        data_sql.push_str(" and user_id in (");
+        count_sql.push_str(" and user_id in (");
+        for (i, id) in x.iter().enumerate() {
+            if i == 0 {
+                data_sql.push_str("'");
+                count_sql.push_str("'");
+            } else {
+                data_sql.push_str(",'");
+                count_sql.push_str(",'");
+            }
+            data_sql.push_str(&id.to_string());
+            count_sql.push_str(&id.to_string());
+            data_sql.push_str("'");
+            count_sql.push_str("'");
+        }
+        data_sql.push_str(")");
+        count_sql.push_str(")");
+    }
+    if let Some(x) = req.user_name {
+        data_sql.push_str(" and user_name like '%");
+        count_sql.push_str(" and user_name like '%");
+        data_sql.push_str(&x);
+        count_sql.push_str(&x);
+        data_sql.push_str("%'");
+        count_sql.push_str("%'");
+    }
+    if let Some(x) = req.phone_num {
+        data_sql.push_str(" and phone_num like '%");
+        count_sql.push_str(" and phone_num like '%");
+        data_sql.push_str(&x);
+        count_sql.push_str(&x);
+        data_sql.push_str("%'");
+        count_sql.push_str("%'");
+    }
+
+    let res: Vec<UserResp> = sqlx::query_as(&data_sql).fetch_all(db).await?;
+    let count: i64 = sqlx::query_scalar(&count_sql).fetch_one(db).await?;
+
+    Ok(UserPageResponse::new(count, res))
+}
 
 #[derive(serde::Deserialize)]
 pub struct OrdersRequest {}

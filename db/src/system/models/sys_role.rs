@@ -80,3 +80,8 @@ pub struct AddOrCancelAuthRoleReq {
     pub user_ids: Vec<String>,
     pub role_id: String,
 }
+#[derive(Deserialize, Clone)]
+pub struct UpdateAuthRoleReq {
+    pub user_id: Uuid,
+    pub role_ids: Vec<Uuid>,
+}
