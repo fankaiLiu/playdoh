@@ -3,7 +3,14 @@ use crate::{custom_response::CustomResponseBuilder, utils};
 use anyhow::anyhow;
 use anyhow::Result;
 use db::db::SqlCommandExecutor;
-use db::{db_conn, DB};
+use db::{
+    db_conn,
+    system::{
+        entities::sys_menu::*,
+        models::sys_menu::*,
+    },
+    DB,
+};
 use hyper::StatusCode;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgRow;
@@ -23,7 +30,7 @@ impl<'a, 'b> SysMenuService<'a, 'b> {
 }
 
 pub async fn create(db: &Pool<Postgres>, req: AddReq) -> Result<String> {
-    let pid = Uuid::parse_str(&req.pid)?;
+    let pid = req.pid;
     let exist = check_router_is_exist_add(db, req.clone()).await?;
     if exist {
         return Err(anyhow!("路由已存在"));
@@ -62,8 +69,8 @@ pub async fn update(db: &Pool<Postgres>, req: UpdateReq) -> Result<String> {
     if check_router_is_exist_update(db, req.clone()).await? {
         return Err(anyhow!("路径或者名称重复"));
     }
-    let id = Uuid::parse_str(&req.id)?;
-    let pid = Uuid::parse_str(&req.pid)?;
+    let id = req.id;
+    let pid = req.pid;
     //Check if the route exists
     let exist = sqlx::query!(
         // language=PostgreSQL
@@ -106,8 +113,7 @@ pub async fn update(db: &Pool<Postgres>, req: UpdateReq) -> Result<String> {
     Ok("修改成功".to_string())
 }
 
-pub async fn delete(db: &Pool<Postgres>, id: &str) -> Result<String> {
-    let id = Uuid::parse_str(id)?;
+pub async fn delete(db: &Pool<Postgres>, id: &Uuid) -> Result<String> {
     let count = sqlx::query_scalar!(
         // language=PostgreSQL
         r#"select api from public.sys_menu where pid = $1"#,
@@ -171,13 +177,41 @@ pub async fn get_by_id(db: &Pool<Postgres>, search_req: SearchReq) -> Result<Men
 }
 
 /// get_all 获取全部
-/// db 数据库连接 使用db.0
 pub async fn get_all_router_tree(db: &Pool<Postgres>) -> Result<Vec<SysMenuTree>> {
     let mut db=SqlCommandExecutor::WithoutTransaction(db);
     let menus = get_enabled_menus(&mut db, true, false).await?;
     let menu_data = self::get_menu_data(menus);
     let menu_tree = self::get_menu_tree(menu_data, "0".to_string());
 
+    Ok(menu_tree)
+}
+
+/// get_all 获取全部
+pub async fn get_all_enabled_menu_tree(db: &Pool<Postgres>) -> Result<Vec<SysMenuTree>> {
+    let mut db=SqlCommandExecutor::WithoutTransaction(db);
+    let menus = get_enabled_menus(& mut db, false, false).await?;
+    let menu_data = self::get_menu_data(menus);
+    let menu_tree = self::get_menu_tree(menu_data, "0".to_string());
+
+    Ok(menu_tree)
+}
+
+/// get_all 获取全部
+pub async fn get_admin_menu_by_role_ids(db:  &Pool<Postgres>, role_id: &Uuid) -> Result<Vec<SysMenuTree>> {
+    let (menu_apis, _) = self::get_role_permissions(db, role_id).await?;
+    //  TODO 条件判断
+    let mut db=SqlCommandExecutor::WithoutTransaction(db);
+
+    let router_all = get_enabled_menus(& mut db, true, false).await?;
+    //  生成menus
+    let mut menus: Vec<MenuResp> = Vec::new();
+    for ele in router_all {
+        if menu_apis.contains(&ele.api) {
+            menus.push(ele);
+        }
+    }
+    let menu_data = self::get_menu_data(menus);
+    let menu_tree = self::get_menu_tree(menu_data, "0".to_string());
     Ok(menu_tree)
 }
 
@@ -421,7 +455,7 @@ pub async fn get_enabled_menus<'a, 'b>(
 }
 
 async fn check_router_is_exist_add(db: &Pool<Postgres>, req: AddReq) -> Result<bool> {
-    let pid = Uuid::parse_str(&req.pid)?;
+    let pid =req.pid;
     let count1 = sqlx::query_scalar!(
         // language=PostgreSQL
         r#"SELECT count(1) FROM public.sys_menu WHERE path=$1 AND pid=$2 AND menu_type<>'F'"#,
@@ -443,8 +477,8 @@ async fn check_router_is_exist_add(db: &Pool<Postgres>, req: AddReq) -> Result<b
     Ok(count1 > 0 || count2 > 0)
 }
 async fn check_router_is_exist_update(db: &Pool<Postgres>, req: UpdateReq) -> Result<bool> {
-    let pid = Uuid::parse_str(&req.pid)?;
-    let id = Uuid::parse_str(&req.id)?;
+    let pid = req.pid;
+    let id =  req.id;
 
     let count1= sqlx::query_scalar!(
         // language=PostgreSQL
@@ -481,177 +515,4 @@ pub async fn get_role_permissions(db: &Pool<Postgres>, role_id: &Uuid) -> Result
         api_ids.push(x.id.clone());
     }
     Ok((apis, api_ids))
-}
-
-#[derive(Serialize, Clone, Debug)]
-pub struct MenuRelated {
-    #[serde(flatten)]
-    pub menu: MenuResp,
-    pub dbs: Vec<String>,
-    pub apis: Vec<String>,
-}
-
-#[derive(Deserialize, Clone, Default)]
-pub struct SearchReq {
-    pub id: Option<String>,
-    pub menu_name: Option<String>,
-    pub menu_type: Option<String>,
-    pub method: Option<String>,
-    pub status: Option<String>,
-    pub begin_time: Option<String>,
-    pub end_time: Option<String>,
-}
-#[derive(Deserialize, Clone, Debug)]
-pub struct AddReq {
-    pub pid: String,
-    pub path: Option<String>,
-    pub menu_name: String,
-    pub icon: Option<String>,
-    pub menu_type: String,
-    pub query: Option<String>,
-    pub order_sort: i32,
-    pub status: String,
-    pub api: String,
-    pub method: Option<String>,
-    pub component: Option<String>,
-    pub visible: String,
-    pub is_frame: String,
-    pub is_cache: String,
-    pub data_scope: String,
-    pub log_method: String,
-    pub data_cache_method: String,
-    pub i18n: Option<String>,
-    pub remark: String,
-}
-#[derive(Debug, Clone, Deserialize)]
-pub struct UpdateReq {
-    pub id: String,
-    pub pid: String,
-    pub path: String,
-    pub menu_name: String,
-    pub icon: Option<String>,
-    pub menu_type: String,
-    pub query: Option<String>,
-    pub order_sort: i32,
-    pub status: String,
-    pub api: String,
-    pub method: Option<String>,
-    pub component: String,
-    pub visible: String,
-    pub is_frame: String,
-    pub is_cache: String,
-    pub data_scope: String,
-    pub log_method: String,
-    pub data_cache_method: String,
-    pub i18n: Option<String>,
-    pub remark: String,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct LogCacheEditReq {
-    pub id: String,
-    pub log_method: String,
-    pub data_cache_method: String,
-}
-#[derive(Serialize, Clone, Debug, Default)]
-pub struct UserMenu {
-    pub id: String,
-    pub pid: String,
-    pub always_show: Option<bool>,
-    pub path: String,
-    pub name: String,
-    pub menu_name: String,
-    pub menu_type: String,
-    pub component: String,
-    pub hidden: bool,
-    pub meta: Meta,
-}
-#[derive(Serialize, Clone, Debug, Default)]
-pub struct SysMenuTree {
-    #[serde(flatten)]
-    pub user_menu: UserMenu,
-    pub children: Option<Vec<SysMenuTree>>,
-}
-
-#[derive(Serialize, Clone, Debug, Default)]
-pub struct Meta {
-    pub icon: String,
-    pub title: String,
-    pub link: Option<String>,
-    pub no_cache: bool,
-    pub hidden: bool,
-    pub i18n: Option<String>,
-}
-pub struct SysMenu {
-    pub id: Uuid,
-    pub pid: Uuid,
-    pub path: String,
-    pub menu_name: String,
-    pub icon: String,
-    pub menu_type: String,
-    pub query: Option<String>,
-    pub order_sort: i32,
-    pub status: String,
-    pub api: String,
-    pub method: String,
-    pub component: String,
-    pub visible: String,
-    pub is_cache: String,
-    pub log_method: String,
-    pub data_cache_method: String,
-    pub is_frame: String,
-    pub data_scope: String,
-    pub i18n: Option<String>,
-    pub remark: String,
-}
-#[derive(Deserialize, Serialize, Debug, Clone, Default)]
-pub struct MenuResp {
-    pub id: Option<String>,
-    pub pid: Option<String>,
-    pub path: String,
-    pub menu_name: String,
-    pub icon: String,
-    pub menu_type: String,
-    pub query: Option<String>,
-    pub order_sort: i32,
-    pub status: String,
-    pub api: String,
-    pub method: String,
-    pub component: String,
-    pub visible: String,
-    pub is_frame: String,
-    pub is_cache: String,
-    pub data_scope: String,
-    pub log_method: String,
-    pub auth_type: String,
-    pub i18n: Option<String>,
-    pub data_cache_method: String,
-    pub remark: String,
-}
-impl<'r> FromRow<'r, PgRow> for MenuResp {
-    fn from_row(row: &'r PgRow) -> Result<Self, sqlx::Error> {
-        Ok(MenuResp {
-            id: row.try_get("id")?,
-            pid: row.try_get("pid")?,
-            path: row.try_get("path")?,
-            menu_name: row.try_get("menu_name")?,
-            icon: row.try_get("icon")?,
-            menu_type: row.try_get("menu_type")?,
-            query: row.try_get("query")?,
-            order_sort: row.try_get("order_sort")?,
-            status: row.try_get("status")?,
-            api: row.try_get("api")?,
-            method: row.try_get("method")?,
-            component: row.try_get("component")?,
-            visible: row.try_get("visible")?,
-            is_frame: row.try_get("is_frame")?,
-            is_cache: row.try_get("is_cache")?,
-            data_scope: row.try_get("data_scope")?,
-            log_method: row.try_get("log_method")?,
-            i18n: row.try_get("i18n")?,
-            data_cache_method: row.try_get("data_cache_method")?,
-            remark: row.try_get("remark")?,
-            auth_type: row.try_get("auth_type")?,
-        })
-    }
 }

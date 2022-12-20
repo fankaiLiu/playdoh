@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 use ahash::HashMap;
 use db::db::{SqlCommandExecutor, TransactionManager};
+use db::system::entities::sys_menu::MenuResp;
 use db::system::models::sys_role::*;
 use serde::{Deserialize, Serialize};
 use sqlx::{Arguments, FromRow, PgPool};
@@ -11,7 +12,6 @@ use anyhow::{anyhow, Result};
 use sqlx::postgres::{PgArguments, PgRow};
 use sqlx::{types::Uuid, Pool, Postgres};
 
-use super::sys_menu::MenuResp;
 use super::sys_role_api;
 
 pub async fn add(db: &PgPool, req: AddReq, user_id: &str) -> Result<String> {
@@ -160,11 +160,10 @@ pub async fn get_all(db: &PgPool) -> Result<Vec<Resp>> {
     Ok(res)
 }
 
-// pub async fn get_current_admin_role(db: &PgPool, user_id: &str) -> Result<String> {
-//     let user_id= Uuid::parse_str(user_id)?;
-//     let user = super::sys_user::get_by_id(db, &user_id).await?;
-//     Ok(user.role_id)
-// }
+pub async fn get_current_admin_role(db: &PgPool, user_id: &Uuid) -> Option<Uuid> {
+    let user = super::sys_user::get_by_id(db, &user_id).await.ok()?;
+    user.user.role_id
+}
 
 pub async fn get_auth_users_by_role_id(db: &PgPool, role_id: &Uuid) -> Result<Vec<Uuid>> {
     super::sys_user_role::get_user_ids_by_role_id(db, role_id).await

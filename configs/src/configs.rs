@@ -62,4 +62,5 @@ pub struct Database {
 
 pub struct System {
     pub user_agent_parser: String,
+    pub super_user: Vec<String>,
 }

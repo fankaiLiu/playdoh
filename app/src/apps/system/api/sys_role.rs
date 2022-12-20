@@ -3,11 +3,11 @@ use db::{db_conn, DB, system::models::{sys_role::*, sys_user::UserWithDept},syst
 use hyper::StatusCode;
 use uuid::Uuid;
 
-use crate::{apps::system::service::{self, sys_user::UserPageResponse, }, utils::jwt::Claims, ResponseResult, custom_response::CustomResponseBuilder, pagination::PageParams};
+use crate::{apps::system::service::{self, sys_user::UserPageResponse, }, utils::jwt::Claims, ResponseResult, custom_response::{CustomResponseBuilder, CustomResponse}, pagination::PageParams};
 
 
 
-pub async fn add(Json(req): Json<AddReq>, user: Claims) -> ResponseResult<String> {
+pub async fn add(user: Claims,Json(req): Json<AddReq>) -> ResponseResult<String> {
     let db = DB.get_or_init(db_conn).await;
     let res = service::sys_role::add(db, req, &user.id).await;
     match res {
@@ -26,7 +26,7 @@ pub async fn delete(Json(delete_req): Json<DeleteReq>) -> ResponseResult<String>
     }
 }
 
-pub async fn edit(Json(edit_req): Json<EditReq>, user: Claims) -> ResponseResult<String> {
+pub async fn edit(user: Claims,Json(edit_req): Json<EditReq>) -> ResponseResult<String> {
     let db = DB.get_or_init(db_conn).await;
     let uuid=Uuid::parse_str(&user.id)?;
     let res = service::sys_role::edit(db, edit_req, &uuid).await;
@@ -144,28 +144,29 @@ pub async fn get_un_auth_users_by_role_id(Query(mut req): Query<UserSearchReq>, 
 
 // edit 修改
 
-pub async fn update_auth_role(Json(req): Json<UpdateAuthRoleReq>, user: Claims) -> ResponseResult<String> {
+pub async fn update_auth_role(user: Claims,Json(req): Json<UpdateAuthRoleReq>) -> CustomResponse<String> {
     let db = DB.get_or_init(db_conn).await;
     match service::sys_role::add_role_by_user_id(db, &req.user_id, req.role_ids, user.id).await {
-        Ok(_) =>  Ok(CustomResponseBuilder::new().body("更新成功".to_string()).build()),
-        Err(e) => Err(e.into()),
+        Ok(_) =>  CustomResponseBuilder::new().body("更新成功".to_string()).build(),
+        Err(e) => CustomResponseBuilder::new().body(e.to_string()).status_code(StatusCode::INTERNAL_SERVER_ERROR).build(),
     }
 }
 
-pub async fn add_auth_user(Json(req): Json<AddOrCancelAuthRoleReq>, user: Claims) -> ResponseResult<String> {
+pub async fn add_auth_user(user: Claims,Json(req): Json<AddOrCancelAuthRoleReq>) -> CustomResponse<String> {
     let db = DB.get_or_init(db_conn).await;
     let res = service::sys_role::add_role_with_user_ids(db, req.clone().user_ids, req.role_id, user.id).await;
     match res {
-        Ok(x) =>  Ok(CustomResponseBuilder::new().body("添加成功".to_string()).build()),
-        Err(e) => Err(e.into()),
+        Ok(_) =>  CustomResponseBuilder::new().body("添加成功".to_string()).build(),
+        Err(e) => CustomResponseBuilder::new().body(e.to_string()).status_code(StatusCode::INTERNAL_SERVER_ERROR).build(),
     }
 }
 
-pub async fn cancel_auth_user(Json(req): Json<AddOrCancelAuthRoleReq>) -> ResponseResult<String> {
+pub async fn cancel_auth_user(Json(req): Json<AddOrCancelAuthRoleReq>) -> CustomResponse<String> {
     let db = DB.get_or_init(db_conn).await;
     let res = service::sys_role::cancel_auth_user(db, req).await;
     match res {
-        Ok(x) =>  Ok(CustomResponseBuilder::new().body("ok".to_string()).build()),
-        Err(e) => Err(e.into()),
+        Ok(_) =>  CustomResponseBuilder::new().body("取消成功".to_string()).build(),
+        Err(e) => CustomResponseBuilder::new().body(e.to_string()).status_code(StatusCode::INTERNAL_SERVER_ERROR).build(),
+
     }
 }
