@@ -61,6 +61,7 @@ pub struct SearchResult {
 pub struct LoginUser {
     pub email: String,
     pub password: String,
+    pub remember:bool,
 }
 #[derive(Debug, Clone,Deserialize,Serialize)]
 pub struct UserWithDept {

@@ -37,5 +37,7 @@ reqwest = "0.11.13"
 user-agent-parser = "0.3.4"
 oso = "0.26.3"
 oso-derive = "0.26.3"
+#askama = { version="0.11.1", features = ["with-axum", "mime", "mime_guess"] }   
 uuid = { version = "1.0", features = ["serde"] }
-
+askama = "0.11.1"
+#askama_axum = "0.2.0"

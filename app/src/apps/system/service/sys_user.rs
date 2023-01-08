@@ -135,6 +135,7 @@ pub async fn get_by_id(db: &Pool<Postgres>, u_id: &Uuid) -> Result<UserWithDept>
     )
     .fetch_one(db)
     .await?;
+    dbg!(&user);
     let dept=sqlx::query_as!(
         DeptResp,
         r#"select dept_id , parent_id, dept_name, order_num,leader,phone,email,created_at,status from "sys_dept"  where dept_id = $1
