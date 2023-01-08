@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@1.8.4"></script>
     <script src="https://unpkg.com/hyperscript.org@0.9.7"></script>
-
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   </head>
   <body>
     <div
@@ -88,7 +88,7 @@
           <div>
             <button
               hx-post="/comm/login"
-              hx-target-error="error"
+              hx-target-error="error" hx-swap="outerHTML"
               type="submit"
               class="group relative flex w-full justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
             >
@@ -121,7 +121,9 @@
       const targetError =
         evt.target.attributes.getNamedItem("hx-target-error");
       if (evt.detail.failed && targetError) {
-        document.getElementById(targetError.value).style.display = "inline";
+        // document.getElementById(targetError.value).style.display = "inline";
+        // let msg= evt.detail.xhr.response;
+        // document.getElementById(targetError.value).innerHTML = msg;
       }
     });
     document.body.addEventListener("htmx:beforeRequest", function (evt) {
