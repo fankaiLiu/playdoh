@@ -160,7 +160,7 @@ impl IntoResponse for AuthError {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AuthBody {
-    token: String,
+    pub token: String,
     token_type: String,
     pub exp: i64,
     exp_in: i64,
