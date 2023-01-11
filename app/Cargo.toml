@@ -41,3 +41,4 @@ oso-derive = "0.26.3"
 #askama_axum = "0.2.0"   
 uuid = { version = "1.0", features = ["serde"] }
 askama = "0.11.1"
+tower-cookies = "0.8.0"

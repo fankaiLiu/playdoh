@@ -17,8 +17,8 @@ use db::{
     system::models::sys_user::{CreateUser, LoginUser, NewUser, UpdateUser},
     DB,
 };
+use tower_cookies::{Cookie, Cookies};
 use headers::HeaderMap;
-use hyper::{StatusCode, header::SET_COOKIE};
 #[derive(Template)]
 #[template(path = "index.html")]
 struct LoginTemplate<'a> {
@@ -39,6 +39,7 @@ pub struct WorkSpaceTemplate<'a> {
 
 pub async fn login<'a>(
     header: HeaderMap,
+    cookies: Cookies,
     Form(req): Form<LoginUser>,
 ) -> Result<HtmlTemplate<WorkSpaceTemplate<'a>>> {
     let db = DB.get_or_init(db_conn).await;
@@ -46,13 +47,10 @@ pub async fn login<'a>(
     //Ok(CustomResponseBuilder::new().body(res).build())
     let a = WorkSpaceTemplate { name: "world" };
     // Build the cookie
-    let cookie = format!("{}={}", COOKIE_NAME, res.token);
-    let cookie = format!("{}={}; SameSite=Lax; Path=/", COOKIE_NAME, cookie);
-
-    // Set cookie
-    let mut headers = HeaderMap::new();
-    headers.insert(SET_COOKIE, cookie.parse().unwrap());
-
+    let mut cookie=Cookie::new("token", res.token);
+    cookie.set_http_only(true);
+    cookies.add(cookie);
+ 
     Ok(HtmlTemplate(a))
 }
 
