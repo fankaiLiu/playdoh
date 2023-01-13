@@ -43,13 +43,10 @@ pub async fn login<'a>(
     Form(req): Form<LoginUser>,
 ) -> Result<HtmlTemplate<WorkSpaceTemplate<'a>>> {
     let db = DB.get_or_init(db_conn).await;
-    let res = service::sys_user::login(db, req, header).await?;
+    let res = service::sys_user::login(cookies,db, req, header).await?;
     //Ok(CustomResponseBuilder::new().body(res).build())
     let a = WorkSpaceTemplate { name: "world" };
-    // Build the cookie
-    let mut cookie=Cookie::new("token", res.token);
-    cookie.set_http_only(true);
-    cookies.add(cookie);
+
  
     Ok(HtmlTemplate(a))
 }

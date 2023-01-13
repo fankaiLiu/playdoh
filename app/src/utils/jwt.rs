@@ -1,3 +1,4 @@
+use crate::apps::system::check_user_online;
 use axum::{
     extract::{FromRequestParts, TypedHeader},
     headers::{authorization::Bearer, Authorization},
@@ -6,20 +7,20 @@ use axum::{
     Json, RequestPartsExt,
 };
 use chrono::{Duration, Local};
-use db::{db_conn, DB, common::ctx::UserInfo};
+use db::{common::ctx::UserInfo, db_conn, DB};
 use jsonwebtoken::{
     decode, encode, errors::ErrorKind, DecodingKey, EncodingKey, Header, Validation,
 };
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use crate::apps::system::check_user_online;
 
 pub static KEYS: Lazy<Keys> = Lazy::new(|| {
     let secret = &CFG.jwt.jwt_secret;
     Keys::new(secret.as_bytes())
 });
 use configs::CFG;
+use tower_cookies::{Cookies, Cookie};
 
 pub struct Keys {
     pub encoding: EncodingKey,
@@ -49,8 +50,6 @@ pub struct Claims {
     pub exp: i64,
 }
 
-
-
 #[axum::async_trait]
 impl<S> FromRequestParts<S> for Claims
 where
@@ -58,10 +57,12 @@ where
 {
     type Rejection = AuthError;
     /// 将用户信息注入request
-    async fn from_request_parts(req: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        let (_, token_v) = get_bear_token(req).await?;
-        // Decode the user data
-
+    async fn from_request_parts(
+        req: &mut Parts,
+        _state: &S,
+    ) -> Result<Self, Self::Rejection> {
+        let (_, token_v) = get_cookie_token(req).await?;
+        //获取 cookie
         let token_data = match decode::<Claims>(&token_v, &KEYS.decoding, &Validation::default()) {
             Ok(token) => {
                 let token_id = token.claims.token_id.clone();
@@ -99,23 +100,27 @@ where
     }
 }
 
-pub async fn get_bear_token(parts: &mut Parts) -> Result<(String, String), AuthError>
+pub async fn get_cookie_token(parts: &mut Parts) -> Result<(String, String), AuthError>
 where
 {
-    let TypedHeader(Authorization(bearer)) = parts
-        .extract::<TypedHeader<Authorization<Bearer>>>()
-        .await
-        .map_err(|_| AuthError::InvalidToken)?;
-    // Decode the user data
-    let bearer_data = bearer.token();
-    let cut = bearer_data.len() - scru128::new_string().len();
+    let cookie = parts
+    .extract::<Cookies>() .await
+    .map_err(|_| AuthError::InvalidToken)?;
+    // let TypedHeader(Authorization(bearer)) = parts
+    //     .extract::<TypedHeader<Authorization<Bearer>>>()
+    //     .await
+    //     .map_err(|_| AuthError::InvalidToken)?;
+    // //Decode the user data
+    // let bearer_data = bearer.token();
+    let token_data= &cookie.get("token").ok_or(AuthError::InvalidToken)?.to_string();
+    let cut = token_data.len() - scru128::new_string().len();
     Ok((
-        bearer_data[cut..].to_string(),
-        bearer_data[0..cut].to_string(),
+        token_data[cut..].to_string(),
+        token_data[0..cut].to_string(),
     ))
 }
 
-pub async fn authorize(payload: AuthPayload, token_id: String) -> Result<AuthBody, AuthError> {
+pub async fn authorize(cookies:Cookies,payload: AuthPayload, token_id: String) -> Result<AuthBody, AuthError> {
     if payload.user_id.is_empty() || payload.name.is_empty() {
         return Err(AuthError::MissingCredentials);
     }
@@ -131,6 +136,10 @@ pub async fn authorize(payload: AuthPayload, token_id: String) -> Result<AuthBod
     let token = encode(&Header::default(), &claims, &KEYS.encoding)
         .map_err(|_| AuthError::WrongCredentials)?;
     // Send the authorized token
+        // Build the cookie
+    let mut cookie=Cookie::new("token", token.clone());
+    cookie.set_http_only(true);
+    cookies.add(cookie);
     Ok(AuthBody::new(token, claims.exp, CFG.jwt.jwt_exp, token_id))
 }
 

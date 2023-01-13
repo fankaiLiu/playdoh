@@ -15,6 +15,8 @@ use argon2::{Argon2, PasswordHash};
 use db::system::models::sys_dept::DeptResp;
 use db::system::models::sys_user::*;
 use sqlx::PgPool;
+use tower_cookies::Cookie;
+use tower_cookies::Cookies;
 use uuid::Uuid;
 
 use db::db_conn;
@@ -89,7 +91,7 @@ pub async fn delete(db: &Pool<Postgres>, id: String) -> Result<String> {
     Ok("ok".to_string())
 }
 
-pub async fn login(db: &Pool<Postgres>, req: LoginUser, header: HeaderMap) -> Result<AuthBody> {
+pub async fn login(cookie:Cookies,db: &Pool<Postgres>, req: LoginUser, header: HeaderMap) -> Result<AuthBody> {
     let msg = "登录成功".to_string();
     let status = "1".to_string();
     let user = sqlx::query!(
@@ -110,7 +112,7 @@ pub async fn login(db: &Pool<Postgres>, req: LoginUser, header: HeaderMap) -> Re
         name: user.user_name.clone(),
     };
     let token_id = scru128::new_string();
-    let token = utils::authorize(claims.clone(), token_id.clone())
+    let token = utils::authorize(cookie,claims.clone(), token_id.clone())
         .await
         .unwrap();
     set_login_info(
@@ -135,7 +137,6 @@ pub async fn get_by_id(db: &Pool<Postgres>, u_id: &Uuid) -> Result<UserWithDept>
     )
     .fetch_one(db)
     .await?;
-    dbg!(&user);
     let dept=sqlx::query_as!(
         DeptResp,
         r#"select dept_id , parent_id, dept_name, order_num,leader,phone,email,created_at,status from "sys_dept"  where dept_id = $1
