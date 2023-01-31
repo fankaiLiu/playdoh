@@ -6,12 +6,14 @@ mod sys_user; // 用户管理
 mod sys_online;
 mod sys_role;
 mod sys_menu;
+mod sys_home;
 pub use sys_user::{login,login_page};
 
 pub fn system_api() -> Router {
     Router::new().nest("/user", sys_user_api()) // 用户管理模块
     .nest("/role", sys_role_api())
     .nest("/menu", sys_menu_api())
+    .nest("/", sys_home_api())
 }
 
 fn sys_user_api() -> Router {
@@ -53,3 +55,8 @@ fn sys_menu_api() -> Router {
         .route("/get_routers", get(sys_menu::get_routers)) // 获取用户菜单树
         .route("/get_auth_list", get(sys_menu::get_related_api_and_db)) // 获取用户菜单树
 }
+
+fn sys_home_api() -> Router {
+    Router::new()
+         .route("/", get(sys_home::home_page)) // 首页
+ }

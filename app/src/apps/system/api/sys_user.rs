@@ -5,11 +5,10 @@ use crate::{
     utils::jwt::AuthBody,
     ResponseResult, Result,
 };
-//use askama::Template;
 use askama::Template;
 use axum::{
     extract::Query,
-    response::{Html, IntoResponse, Response},
+    response::{Html, IntoResponse, Response, Redirect},
     Form, Json,
 };
 use db::{
@@ -20,15 +19,18 @@ use db::{
 use tower_cookies::{Cookie, Cookies};
 use headers::HeaderMap;
 #[derive(Template)]
-#[template(path = "index.html")]
+#[template(path = "login.html")]
 struct LoginTemplate<'a> {
     name: &'a str,
 }
 static COOKIE_NAME: &str = "jwt";
-
-pub async fn login_page() -> impl IntoResponse {
-    let a = LoginTemplate { name: "world" };
-    HtmlTemplate(a)
+                                                                                           
+pub async fn login_page(    cookies: Option<Cookies>,) -> impl IntoResponse {
+     if cookies.is_none(){
+        Redirect::to("/login"); 
+     }
+    let a = WorkSpaceTemplate { name: "world" };
+    return HtmlTemplate(a);
 }
 
 #[derive(Template)]
@@ -46,8 +48,6 @@ pub async fn login<'a>(
     let res = service::sys_user::login(cookies,db, req, header).await?;
     //Ok(CustomResponseBuilder::new().body(res).build())
     let a = WorkSpaceTemplate { name: "world" };
-
- 
     Ok(HtmlTemplate(a))
 }
 
