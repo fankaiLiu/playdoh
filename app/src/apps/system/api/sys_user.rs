@@ -26,10 +26,10 @@ struct LoginTemplate<'a> {
 static COOKIE_NAME: &str = "jwt";
                                                                                            
 pub async fn login_page(    cookies: Option<Cookies>,) -> impl IntoResponse {
-     if cookies.is_none(){
-        Redirect::to("/login"); 
+     if cookies.is_some(){
+        Redirect::to("/system"); 
      }
-    let a = WorkSpaceTemplate { name: "world" };
+    let a = LoginTemplate { name: "world" };
     return HtmlTemplate(a);
 }
 
@@ -44,7 +44,7 @@ pub async fn login<'a>(
     cookies: Cookies,
     Form(req): Form<LoginUser>,
 ) -> Result<HtmlTemplate<WorkSpaceTemplate<'a>>> {
-    let db = DB.get_or_init(db_conn).await;
+    let db = DB.get_or_init(db_conn).await; 
     let res = service::sys_user::login(cookies,db, req, header).await?;
     //Ok(CustomResponseBuilder::new().body(res).build())
     let a = WorkSpaceTemplate { name: "world" };
