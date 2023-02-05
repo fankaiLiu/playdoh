@@ -7,6 +7,7 @@ use axum::{middleware, routing::{post, get}, Router};
 use configs::CFG;
 use tower_cookies::{CookieManagerLayer};
 pub mod system;
+pub mod runtime;
 
 pub fn api() -> Router {
     Router::new()
