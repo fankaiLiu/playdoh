@@ -8,6 +8,8 @@ edition = "2021"
 [dependencies]
 bytes = "1.2.1"
 configs = {path = "../configs"}
+playoh_runtime = {path = "../playoh_runtime"}
+
 serde = "1.0.147"
 db = {path = "../db"}
 time = { version = "0.3", features = ["serde"] }

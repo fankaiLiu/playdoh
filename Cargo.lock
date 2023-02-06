@@ -71,6 +71,7 @@ dependencies = [
  "once_cell",
  "oso",
  "oso-derive",
+ "playoh_runtime",
  "rand 0.8.5",
  "reqwest",
  "scru128",

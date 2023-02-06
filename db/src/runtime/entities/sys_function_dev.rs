@@ -12,20 +12,20 @@
 // );
 
 use serde::Deserialize;
+use sqlx::FromRow;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
-#[derive(Deserialize, Clone, Debug)]
-pub struct AddReq {
+#[derive(Deserialize, Clone, Debug,FromRow)]
+pub struct FunctionDev {
+    pub function_dev_id: Uuid,
     pub function_name: String,
+    pub function_id: Uuid,
+    pub status: String,
     pub code: String,
-    pub created_by :Uuid,
+    pub call_number: i32,
+    pub created_by: Uuid,
+    pub created_at: OffsetDateTime,
+    pub updated_by: Option<Uuid>,
+    pub updated_at: Option<OffsetDateTime>,
 }
-
-#[derive(Deserialize, Clone, Debug)]
-pub struct UpdateReq {
-    pub function_dev_id: String,
-    pub function_name: String,
-    pub status: String,    
-    pub code: String,
-}
-
