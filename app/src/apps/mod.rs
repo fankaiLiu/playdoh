@@ -5,7 +5,10 @@ use crate::{
 };
 use axum::{middleware, routing::{post, get}, Router};
 use configs::CFG;
+use once_cell::sync::Lazy;
 use tower_cookies::{CookieManagerLayer};
+
+use self::runtime::service::{runtime_function::RuntimeFuctionService, runtime_function_log::RuntimeFuctionLogService};
 pub mod system;
 pub mod runtime;
 
@@ -40,4 +43,18 @@ fn auth_api() -> Router {
         .layer(middleware::from_fn(ctx_fn_mid))
         .layer(middleware::from_extractor::<Claims>());
     router
+}
+
+pub static CONTEXT: Lazy<ServiceContext> = Lazy::new(|| ServiceContext::default());
+pub struct ServiceContext {
+    pub runtime_funciton:RuntimeFuctionService,
+    pub runtime_function_log:RuntimeFuctionLogService,
+}
+impl Default for ServiceContext {
+    fn default() -> Self {
+        ServiceContext {
+            runtime_funciton:RuntimeFuctionService::new(),
+            runtime_function_log:RuntimeFuctionLogService::new(),
+         }
+    }
 }

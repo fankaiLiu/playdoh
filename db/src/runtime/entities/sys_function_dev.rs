@@ -11,12 +11,12 @@
 //     updated_at timestamptz default null
 // );
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-#[derive(Deserialize, Clone, Debug,FromRow)]
+#[derive(Deserialize,Serialize, Clone, Debug,FromRow)]
 pub struct FunctionDev {
     pub function_dev_id: Uuid,
     pub function_name: String,

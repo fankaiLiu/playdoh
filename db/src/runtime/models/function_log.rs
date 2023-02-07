@@ -15,7 +15,10 @@
 //   );               
 
 
+use std::fmt::Display;
+
 use serde::Deserialize;
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 #[derive(Deserialize, Clone, Debug)]
@@ -24,7 +27,7 @@ pub struct AddReq {
     pub start_time: OffsetDateTime,
     pub end_time: OffsetDateTime,
     pub status: String,
-    pub execution_user_id: Uuid,
+    pub execution_user_id: Option<Uuid>,
     pub source: String,
     pub source_id: Uuid,
     pub result_log: String,
@@ -33,3 +36,55 @@ pub struct AddReq {
     pub arguments: String,
 }
 
+impl AddReq {
+    pub fn new(function_name:String,start_time:OffsetDateTime,source:Source,status:Status,user_id:Option<Uuid>,source_id:&Uuid,is_success:bool,arguments:String,result_log:String) -> Self {
+        let now = OffsetDateTime::now_utc();
+        AddReq {
+            function_name: function_name,
+            start_time: start_time,
+            end_time: now,
+            status: status.to_string(),
+            execution_user_id: user_id,
+            source: source.to_string(),
+            source_id: source_id.clone(),
+            result_log: result_log,
+            duration_ms: (now-start_time).whole_milliseconds() as i64,
+            is_success: is_success,
+            arguments: arguments,
+        }
+    }
+}
+#[derive(Deserialize, Clone, Debug)]
+pub enum Source {
+    Dev,
+    Staging,
+    Prod,
+}
+
+impl Display for Source {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Source::Dev => write!(f, "dev"),
+            Source::Staging => write!(f, "staging"),
+            Source::Prod => write!(f, "prod"),
+        }
+    }
+}
+
+pub enum Status {
+    Running,
+    Success,
+    Failed,
+    Timeout,
+}
+
+impl Display for Status {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Status::Running => write!(f, "running"),
+            Status::Success => write!(f, "success"),
+            Status::Failed => write!(f, "failed"),
+            Status::Timeout => write!(f, "timeout"),
+        }
+    }
+}
