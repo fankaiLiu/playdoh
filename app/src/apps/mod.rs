@@ -1,5 +1,5 @@
 use crate::{
-    apps::system::{SysLogins,SysLoginsPage},
+    apps::system::{SysLogins,SysLoginCheck,SysLoginsPage},
     middleware::{ctx::ctx_fn_mid, oper_log::oper_log_fn_mid},
     utils::jwt::Claims,
 };
@@ -22,8 +22,8 @@ pub fn api() -> Router {
 //无需授权api
 pub fn no_auth_api() -> Router {
     Router::new().route("/login", post(SysLogins)) // 登录
-    .route("/login", get(SysLoginsPage)) 
-
+    .route("/login", get(SysLoginCheck)) 
+    .route("/login_page", get(SysLoginsPage)) 
 }
 
 // 需要授权的api

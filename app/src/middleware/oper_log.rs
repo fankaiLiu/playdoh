@@ -28,7 +28,6 @@ pub async fn oper_log_fn_mid(
     next: Next<Body>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
     // 查询ctx
-    dbg!(1);
     let req_ctx = match req.extensions().get::<ReqCtx>() {
         Some(x) => x.clone(),
         None => return Ok(next.run(req).await),
@@ -37,7 +36,6 @@ pub async fn oper_log_fn_mid(
         Some(x) => x.clone(),
         None => return Ok(next.run(req).await),
     };
-    dbg!(1);
     let now = Instant::now();
     let res_end = next.run(req).await;
     let duration = now.elapsed();

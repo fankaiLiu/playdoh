@@ -23,14 +23,21 @@ use headers::HeaderMap;
 struct LoginTemplate<'a> {
     name: &'a str,
 }
-static COOKIE_NAME: &str = "jwt";
+static COOKIE_NAME: &str = "token";
                                                                                            
-pub async fn login_page(    cookies: Option<Cookies>,) -> impl IntoResponse {
-     if cookies.is_some(){
-        Redirect::to("/system"); 
+pub async fn login_check(cookies: Cookies,) -> impl IntoResponse {
+        dbg!(&cookies);
+     if cookies.get(COOKIE_NAME).is_some(){
+        return Redirect::to("/system"); 
      }
     let a = LoginTemplate { name: "world" };
-    return HtmlTemplate(a);
+    return Redirect::to("/login_page"); 
+}
+pub async fn login_page() -> impl IntoResponse {
+    
+   let a = LoginTemplate { name: "world" };
+   return  HtmlTemplate(a);
+
 }
 
 #[derive(Template)]
