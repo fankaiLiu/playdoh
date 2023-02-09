@@ -8,7 +8,7 @@ use configs::CFG;
 use once_cell::sync::Lazy;
 use tower_cookies::{CookieManagerLayer};
 
-use self::runtime::service::{runtime_function::RuntimeFuctionService, runtime_function_log::RuntimeFuctionLogService};
+use self::runtime::{service::{runtime_function::RuntimeFuctionService, runtime_function_log::RuntimeFuctionLogService}, api::runtime_function_api};
 pub mod system;
 pub mod runtime;
 
@@ -16,7 +16,9 @@ pub fn api() -> Router {
     Router::new()
         // 系统管理模块
         .nest("/system", auth_api())
-        .nest("/", no_auth_api()).layer(CookieManagerLayer::new())
+        .nest("/", no_auth_api())
+        .nest("/runtime", runtime_function_api())
+        .layer(CookieManagerLayer::new())
 }
 
 //无需授权api

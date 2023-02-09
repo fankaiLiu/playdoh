@@ -10,7 +10,7 @@ use db::runtime::models::{function_log::Source, sys_function_dev::*};
 use db::{db_conn, DB};
 use hyper::StatusCode;
 use uuid::Uuid;
-
+use crate::Result;
 pub async fn careate(Json(req): Json<AddReq>) -> ResponseResult<String> {
     let db = DB.get_or_init(db_conn).await;
     let res = CONTEXT.runtime_funciton.add_function_dev(db, req).await;
@@ -42,9 +42,16 @@ pub async fn delete(id: String) -> ResponseResult<bool> {
     let res = CONTEXT.runtime_funciton.delete_function_dev(db, &id).await?;
     Ok(CustomResponseBuilder::new().body(res).build())
  }
+ #[derive(Template)]
+ #[template(path = "runtime/fuction_list.html")]
+ pub struct FunctionListTemplate<'a> {
+     data: &'a str,
+ }
 
-pub async fn list(Query(request): Query<PageParams>) -> ResponseResult<FnDevPageResponse> {
+pub async fn list<'a>(Query(request): Query<PageParams>) -> Result<HtmlTemplate<FunctionListTemplate<'a>>> {
     let db = DB.get_or_init(db_conn).await;
     let res = CONTEXT.runtime_funciton.page_function_dev(db, request).await?;
-    Ok(CustomResponseBuilder::new().body(res).build())
+    //Ok(CustomResponseBuilder::new().body(res).build())
+    let a = FunctionListTemplate { data: "world" };
+    Ok(HtmlTemplate(a))
  }
