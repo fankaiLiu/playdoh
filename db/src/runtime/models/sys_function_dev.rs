@@ -18,7 +18,6 @@ use uuid::Uuid;
 pub struct AddReq {
     pub function_name: String,
     pub code: String,
-    pub created_by :Uuid,
 }
 
 #[derive(Deserialize, Clone, Debug)]

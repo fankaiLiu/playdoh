@@ -18,7 +18,7 @@ impl RuntimeFuctionService{
     pub fn new() -> Self {
         Self {}
     }
-    pub async fn add_function_dev(&self,db: &Pool<Postgres>, req: AddReq) -> Result<String> {
+    pub async fn add_function_dev(&self,db: &Pool<Postgres>, req: AddReq,created_by:&Uuid) -> Result<String> {
         let function_id=uuid::Uuid::new_v4();
         let id = sqlx::query_scalar!(
             // language=PostgreSQL
@@ -26,7 +26,7 @@ impl RuntimeFuctionService{
             req.function_name,
             function_id,
             req.code,
-            req.created_by,                
+            created_by,                
         )
         .fetch_one(db)
         .await?;
