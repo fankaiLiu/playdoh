@@ -6,6 +6,7 @@ use crate::utils::jwt::Claims;
 use crate::{custom_response::HtmlTemplate, pagination::PageParams, ResponseResult};
 use askama::Template;
 use axum::Form;
+use axum::extract::Path;
 use axum::{extract::Query, Json};
 use db::runtime::entities::sys_function_dev::*;
 use db::runtime::models::{function_log::Source, sys_function_dev::*};
@@ -70,4 +71,14 @@ pub async fn list<'a>(Query(request): Query<PageParams>) -> Result<HtmlTemplate<
 pub async fn add() -> Result<HtmlTemplate<FunctionAddTemplate>> {
     let a = FunctionAddTemplate {   };
     Ok(HtmlTemplate(a))
+ }
+
+ pub async fn run(Path(source): Path<String>,Path(user_id): Path<String>,) -> Result<String> {
+    if source=="dev".to_string() {
+        let db = DB.get_or_init(db_conn).await;
+        let user_id = Uuid::parse_str(&user_id)?;
+        //let res = CONTEXT.runtime_funciton.(db, &user_id).await?;
+        //return Ok(res);
+    }
+   todo!()
  }

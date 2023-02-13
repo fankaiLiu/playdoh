@@ -65,7 +65,7 @@ pub async fn run(code: &str, args: &str) -> String {
     let result = JS_DATA
         .lock()
         .unwrap()
-        .get(&id.to_string())
+        .get(&id.to_string()) 
         .unwrap()
         .clone();
     JS_DATA.lock().unwrap().remove(&id.to_string());
