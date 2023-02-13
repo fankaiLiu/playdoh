@@ -73,10 +73,10 @@ pub async fn add() -> Result<HtmlTemplate<FunctionAddTemplate>> {
     Ok(HtmlTemplate(a))
  }
 
- pub async fn run(Path(source): Path<String>,Path(user_id): Path<String>,) -> Result<String> {
+ pub async fn run(Path(source): Path<String>,Path(function_id): Path<String>,) -> Result<String> {
     if source=="dev".to_string() {
         let db = DB.get_or_init(db_conn).await;
-        let user_id = Uuid::parse_str(&user_id)?;
+        let function_id = Uuid::parse_str(&function_id)?;
         //let res = CONTEXT.runtime_funciton.(db, &user_id).await?;
         //return Ok(res);
     }
