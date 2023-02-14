@@ -109,11 +109,12 @@ impl RuntimeFuctionService{
         let page_turn = PageTurnResponse::new(total.unwrap_or_default(),res );
         Ok(page_turn)
     }
-    pub async fn run(db: &Pool<Postgres>, function_id: &Uuid,user_id:Option<Uuid>)->Result<String>
+    pub async fn run(&self,db: &Pool<Postgres>, function_id: &Uuid,user_id:Option<Uuid>)->Result<String>
     {
         let record =sqlx::query!("select code ,function_name ,function_dev_id from sys_function_dev where function_id=$1",function_id).fetch_one(db).await?;
         let code=record.code;
         let now=OffsetDateTime::now_utc();
+        dbg!(&code);
         let res=run(&code,"{}").await;
         let log=FunctionLogAddReq::new(record.function_name,now,Source::Dev,Status::Success,user_id,&record.function_dev_id.clone(),true,"{}".to_string(),res.clone());
         CONTEXT.runtime_function_log.add_function_log(db,log).await?;

@@ -83,11 +83,19 @@
                     {{ row.code }}
                   </td>
                   <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    {{ row.call_number }}
+                    <button
+                      hx-get="/modal"
+                      hx-target="#modals-here"
+                      hx-trigger="click"
+                      class=" "
+                      _="on htmx:afterOnLoad wait 10ms then add .show to #modal then add .show to #modal-backdrop"
+                    >
+                      {{ row.call_number }}
+                    </button>
                   </td>
                   <td>
                     <button
-                      hx-get="/dev/run/{{row.function_dev_id}}"
+                      hx-get="/runtime/dev/{{row.function_id}}"
                       class="btn btn-primary"
                     >
                       run
