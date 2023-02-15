@@ -1,4 +1,5 @@
 use crate::apps::CONTEXT;
+use crate::apps::common::alerts::SuccessAlertWithButtonTemplate;
 use crate::apps::runtime::service::runtime_function::FnDevPageResponse;
 use crate::custom_response::CustomResponseBuilder;
 use crate::pagination::PageTurnResponse;
@@ -7,10 +8,12 @@ use crate::{custom_response::HtmlTemplate, pagination::PageParams, ResponseResul
 use askama::Template;
 use axum::Form;
 use axum::extract::Path;
+use axum::response::Response;
 use axum::{extract::Query, Json};
 use db::runtime::entities::sys_function_dev::*;
 use db::runtime::models::{function_log::Source, sys_function_dev::*};
 use db::{db_conn, DB};
+use headers::HeaderMap;
 use hyper::StatusCode;
 use uuid::Uuid;
 use crate::Result;
@@ -75,13 +78,16 @@ pub async fn add() -> Result<HtmlTemplate<FunctionAddTemplate>> {
 
  pub async fn run(
     user: Claims,
-    Path(param): Path<(String,String)>,) -> Result<String> {
+    Path(param): Path<(String,String)>,
+) -> Result<HtmlTemplate<SuccessAlertWithButtonTemplate>>{
     if param.0=="dev".to_string() {
         let db = DB.get_or_init(db_conn).await;
         let function_id = Uuid::parse_str(&param.1)?;
         let user_id=Uuid::parse_str(&user.id)?;
         let res = CONTEXT.runtime_funciton.run(db, &function_id,Some(user_id)).await?;
-        return Ok(res);
+        //change header
+        let html = SuccessAlertWithButtonTemplate {msg:res};
+        return Ok(HtmlTemplate(html));
     }
    todo!()
  }

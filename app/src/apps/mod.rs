@@ -11,7 +11,7 @@ use tower_cookies::{CookieManagerLayer};
 use self::runtime::{service::{runtime_function::RuntimeFuctionService, runtime_function_log::RuntimeFuctionLogService}, api::runtime_function_api};
 pub mod system;
 pub mod runtime;
-
+pub mod common;
 pub fn api() -> Router {
     Router::new()
         // 系统管理模块

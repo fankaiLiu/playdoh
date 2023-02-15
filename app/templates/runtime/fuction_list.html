@@ -95,6 +95,9 @@
                   </td>
                   <td>
                     <button
+                      hx-target="#alert"
+                      hx-trigger="click"
+                      hx-swap="innerHTML"
                       hx-get="/runtime/dev/{{row.function_id}}"
                       class="btn btn-primary"
                     >

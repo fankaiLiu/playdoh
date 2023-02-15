@@ -26,6 +26,12 @@ impl RuntimeFuctionLogService {
             )
             .fetch_one(db)
             .await?;
+            // 	CallNumber+=1
+            sqlx::query_scalar!(
+                // language=PostgreSQL
+                r#"update "sys_function_dev" set call_number=call_number+1 where function_dev_id=$1"#,
+                req.source_id
+            ).execute(db).await?;
             Ok(id.to_string())
         }
     }
