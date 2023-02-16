@@ -30,11 +30,27 @@ pub struct AddReq {
     pub execution_user_id: Option<Uuid>,
     pub source: String,
     pub source_id: Uuid,
-    pub result_log: String,
+    pub result_log:Option<String>,
     pub duration_ms: i64,
     pub is_success: bool,
-    pub arguments: String,
+    pub arguments: Option<String>,
 }
+#[derive(Deserialize, Clone, Debug, sqlx::FromRow)]
+pub struct FnLog {
+    pub function_log_id: i32,
+    pub function_name: String,
+    pub start_time: OffsetDateTime,
+    pub end_time: Option<OffsetDateTime>,
+    pub status: String,
+    pub execution_user_id: Option<Uuid>,
+    pub source: Option<String>,
+    pub source_id: Uuid,
+    pub result_log: Option<String>,
+    pub duration_ms: Option<i64>,
+    pub is_success: bool,
+    pub arguments: Option<String>,
+}
+
 
 impl AddReq {
     pub fn new(function_name:String,start_time:OffsetDateTime,source:Source,status:Status,user_id:Option<Uuid>,source_id:&Uuid,is_success:bool,arguments:String,result_log:String) -> Self {
@@ -47,10 +63,10 @@ impl AddReq {
             execution_user_id: user_id,
             source: source.to_string(),
             source_id: source_id.clone(),
-            result_log: result_log,
+            result_log: Some(result_log),
             duration_ms: (now-start_time).whole_milliseconds() as i64,
             is_success: is_success,
-            arguments: arguments,
+            arguments: Some(arguments),
         }
     }
 }
