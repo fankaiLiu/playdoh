@@ -39,7 +39,7 @@ pub struct AddReq {
 pub struct FnLog {
     pub function_log_id: i32,
     pub function_name: String,
-    pub start_time: OffsetDateTime,
+    pub start_time: Option<String>,
     pub end_time: Option<OffsetDateTime>,
     pub status: String,
     pub execution_user_id: Option<Uuid>,

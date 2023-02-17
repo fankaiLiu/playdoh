@@ -42,7 +42,7 @@ impl RuntimeFuctionLogService {
         let res = sqlx::query_as!(
             FnLog,
             // language=PostgreSQL
-            r#"SELECT function_log_id, function_name, start_time, end_time, status, execution_user_id, source, source_id, result_log, duration_ms, is_success, arguments
+            r#"SELECT function_log_id, function_name,TO_CHAR(start_time, 'YYYY-MM-DD HH24:MI:SS')as start_time, end_time, status, execution_user_id, source, source_id, result_log, duration_ms, is_success, arguments
             FROM public.function_log order by function_log_id desc limit $1 offset $2"#,
             pagination.limit,
             pagination.offset,
