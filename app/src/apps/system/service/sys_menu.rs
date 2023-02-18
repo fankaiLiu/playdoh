@@ -392,7 +392,7 @@ async fn page(page_params: PageParams, search_req: Option<SearchReq>) -> Result<
         .fetch_one(db)
         .await?
         .try_get("count")?;
-    return Ok(MenuPageResponse::new(count, menus));
+    return Ok(MenuPageResponse::new(count,pagination.limit, menus));
 }
 
 pub type MenuRelatedPageResponse = PageTurnResponse<MenuRelated>;
@@ -421,7 +421,7 @@ pub async fn get_related_api_and_db(
             apis,
         });
     }
-    return Ok(MenuRelatedPageResponse::new(menus.total_count, res));
+    return Ok(MenuRelatedPageResponse::new(menus.total_count,0, res));
 }
 
 /// 获取全部菜单 或者 除开按键api级别的外的路由

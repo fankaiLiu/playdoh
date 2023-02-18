@@ -85,7 +85,7 @@
                   </td>
                   <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                     <button
-                      hx-get="/runtime/log"
+                      hx-get="/runtime/log/{{row.function_dev_id}}?limit=3&offset=0"
                       hx-target="#modals-here"
                       hx-trigger="click"
                       class=" "

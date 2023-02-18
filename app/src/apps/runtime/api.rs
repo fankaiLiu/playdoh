@@ -10,5 +10,5 @@ pub fn runtime_function_api() -> Router {
         .route("/add", get(runtime_function::add))
         .route("/add", post(runtime_function::careate))
         .route("/:source/:function_id",  get(runtime_function::run))
-        .route("/log", get(runtime_log::list))
+        .route("/log/:function_id", get(runtime_log::list))
 }

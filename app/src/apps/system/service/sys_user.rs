@@ -57,7 +57,7 @@ pub async fn page(req: PageParams) -> Result<UserPageResponse> {
         .fetch_one(db)
         .await?
         .unwrap_or(0);
-    Ok(UserPageResponse::new(tatal_count, users))
+    Ok(UserPageResponse::new(tatal_count,pagination.limit, users))
 }
 
 pub async fn update_user(db: &Pool<Postgres>, req: UpdateUser) -> Result<String> {
@@ -250,7 +250,7 @@ pub async fn get_un_auth_user(
     let res: Vec<UserResp> = sqlx::query_as(&data_sql).fetch_all(db).await?;
     let count: i64 = sqlx::query_scalar(&count_sql).fetch_one(db).await?;
 
-    Ok(UserPageResponse::new(count, res))
+    Ok(UserPageResponse::new(count,pagination.limit, res))
 }
 
 #[derive(serde::Deserialize)]

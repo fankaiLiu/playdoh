@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-const LIMIT: i64 = 100;
+const LIMIT: i64 = 20;
 const OFFSET: i64 = 0;
 
 #[derive(Debug, Serialize)]
@@ -62,12 +62,14 @@ impl PaginationBuilder {
 #[derive(Debug, Serialize)]
 pub struct PageTurnResponse<T> {
     pub total_count: i64,
+    pub page: usize,
     pub data: Vec<T>,
 }
 
 impl<T> PageTurnResponse<T> {
-    pub fn new(total_count: i64, data: Vec<T>) -> Self {
-        Self { total_count, data }
+    pub fn new(total_count: i64,page:i64, data: Vec<T>) -> Self {
+        let page=page as usize;
+        Self { total_count,page, data }
     }
 }
 #[derive(Debug, Deserialize)]

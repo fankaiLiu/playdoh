@@ -106,7 +106,7 @@ impl RuntimeFuctionService{
         )
         .fetch_one(db)
         .await?;
-        let page_turn = PageTurnResponse::new(total.unwrap_or_default(),res );
+        let page_turn = PageTurnResponse::new(total.unwrap_or_default(),pagination.limit,res );
         Ok(page_turn)
     }
     pub async fn run(&self,db: &Pool<Postgres>, function_id: &Uuid,user_id:Option<Uuid>)->Result<String>
