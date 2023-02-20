@@ -161,7 +161,7 @@ add
 
 create table "sys_dept" (
     dept_id uuid primary key default uuid_generate_v1mc(),
-    parent_id uuid  default null,
+    parent_id uuid default null,
     dept_name varchar(255) not null,
     order_num integer not null,
     leader varchar(255) default null,
@@ -277,3 +277,91 @@ alter table
     "sys_user_post"
 add
     constraint "sys_user_post_post_id_fkey" foreign key (post_id) references "sys_post" (post_id) on delete cascade on update cascade;
+
+create table "function" (
+    function_id uuid primary key default uuid_generate_v1mc(),
+    function_name text collate "case_insensitive" unique not null,
+    status varchar(50) not null default 'dev',
+    code text collate "case_insensitive" not null,
+    created_by uuid not null,
+    created_at timestamptz not null default now(),
+    updated_by uuid default null,
+    call_number integer not null default 0,
+    path url not null,
+    version INTEGER NOT NULL DEFAULT 1,
+    updated_at timestamptz default null
+);
+
+SELECT
+    trigger_updated_at('"function"');
+
+alter table
+    "function"
+add
+    constraint "function_user_id_fkey" foreign key (created_by) references "sys_user" (user_id) on delete cascade on update cascade;
+
+create table "function_history" (
+    function_history_id uuid primary key default uuid_generate_v1mc(),
+    function_id uuid not null,
+    function_name text collate "case_insensitive" not null,
+    status varchar(50) not null default 'dev',
+    code text collate "case_insensitive" not null,
+    created_by uuid not null,
+    created_at timestamptz not null default now(),
+    call_number integer not null default 0,
+    path url not null,
+    version integer not null default 1,
+);
+
+alter table
+    "function_history"
+add
+    constraint "function_history_user_id_fkey" foreign key (created_by) references "sys_user" (user_id) on delete cascade on update cascade;
+
+alter table
+    "function_history"
+add
+    constraint "function_history_function_id_fkey" foreign key (function_id) references "function" (function_id) on delete cascade on update cascade;
+
+create table function_log (
+    function_log_id serial PRIMARY KEY,
+    function_id uuid not null,
+    function_name text NOT NULL,
+    start_time timestamptz NOT NULL DEFAULT NOW(),
+    end_time timestamptz,
+    status varchar(50) NOT NULL,
+    execution_user_id uuid default null,
+    source varchar(50),
+    source_id uuid not null,
+    result_log text,
+    duration_ms bigint,
+    is_success boolean not null default false,
+    arguments text
+);
+
+alter table
+    "function_log"
+add
+    constraint "function_log_function_id_fkey" foreign key (function_id) references "function" (function_id) on delete cascade on update cascade;
+
+create table oss_upload_history (
+    id serial PRIMARY KEY,
+    -- Primary key ID
+    object_key varchar(255),
+    -- Unique identifier of the file in OSS
+    file_name varchar(255),
+    -- Name of the file
+    file_size bigint,
+    -- Size of the file in bytes
+    bucket_name varchar(255),
+    -- Name of the storage space
+    created_at timestamptz not null default now(),
+    -- Upload time of the file
+    created_by uuid not null,
+    -- ID of the uploader
+    description varchar(255),
+    -- Description of the file
+    status varchar(20),
+    -- Status of the file, such as "deleted" or "normal"
+    download_url varchar(255) -- Download URL of the file
+);
