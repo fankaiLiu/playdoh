@@ -22,7 +22,7 @@ pub struct AddReq {
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct UpdateReq {
-    pub function_dev_id: String,
+    pub function_id: String,
     pub function_name: String,
     pub status: String,    
     pub code: String,

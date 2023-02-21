@@ -10,8 +10,8 @@ use axum::Form;
 use axum::extract::Path;
 use axum::response::Response;
 use axum::{extract::Query, Json};
-use db::runtime::entities::sys_function_dev::*;
-use db::runtime::models::{function_log::Source, sys_function_dev::*};
+use db::runtime::entities::function::*;
+use db::runtime::models::{function_log::Source, function::*};
 use db::{db_conn, DB};
 use headers::HeaderMap;
 use hyper::StatusCode;
@@ -36,7 +36,7 @@ pub async fn careate(
 pub async fn update(
     user: Claims,
     Json(req): Json<UpdateReq>,
-) -> ResponseResult<Option<FunctionDev>> {
+) -> ResponseResult<Option<Function>> {
     let db = DB.get_or_init(db_conn).await;
     let user_id = Uuid::parse_str(&user.id)?;
     let res = CONTEXT
@@ -55,7 +55,7 @@ pub async fn delete(id: String) -> ResponseResult<bool> {
  #[derive(Template)]
  #[template(path = "runtime/fuction_list.html")]
  pub struct FunctionListTemplate {
-     data: PageTurnResponse<FunctionDev>,
+     data: PageTurnResponse<Function>,
  }
 
 pub async fn list<'a>(Query(request): Query<PageParams>) -> Result<HtmlTemplate<FunctionListTemplate>> {
