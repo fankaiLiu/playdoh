@@ -1,6 +1,6 @@
 use crate::apps::CONTEXT;
 use crate::apps::common::alerts::SuccessAlertWithButtonTemplate;
-use crate::apps::runtime::service::runtime_function::FnDevPageResponse;
+use crate::apps::runtime::service::runtime_function::FnPageResponse;
 use crate::custom_response::CustomResponseBuilder;
 use crate::pagination::PageTurnResponse;
 use crate::utils::jwt::Claims;
@@ -23,7 +23,7 @@ pub async fn careate(
     dbg!(&req);
     let db = DB.get_or_init(db_conn).await;
     let user_id = Uuid::parse_str(&user.id)?;
-    let res = CONTEXT.runtime_funciton.add_function_dev(db, req,&user_id).await;
+    let res = CONTEXT.runtime_funciton.add_function(db, req,&user_id).await;
     match res {
         Ok(x) => Ok(CustomResponseBuilder::new().body(x).build()),
         Err(e) => Ok(CustomResponseBuilder::new()
@@ -41,7 +41,7 @@ pub async fn update(
     let user_id = Uuid::parse_str(&user.id)?;
     let res = CONTEXT
         .runtime_funciton
-        .update_function_dev(db, &req, &user_id)
+        .update_function(db, &req, &user_id)
         .await?;
     Ok(CustomResponseBuilder::new().body(res).build())
 }
@@ -49,7 +49,7 @@ pub async fn update(
 pub async fn delete(id: String) -> ResponseResult<bool> {
     let db = DB.get_or_init(db_conn).await;
     let id= Uuid::parse_str(&id)?;
-    let res = CONTEXT.runtime_funciton.delete_function_dev(db, &id).await?;
+    let res = CONTEXT.runtime_funciton.delete_function(db, &id).await?;
     Ok(CustomResponseBuilder::new().body(res).build())
  }
  #[derive(Template)]

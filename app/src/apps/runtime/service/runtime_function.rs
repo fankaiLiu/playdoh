@@ -12,13 +12,13 @@ use playoh_runtime::jsruntime::run;
 pub struct  RuntimeFuctionService{
 
 }
-pub type FnDevPageResponse = PageTurnResponse<Function>;
+pub type FnPageResponse = PageTurnResponse<Function>;
 
 impl RuntimeFuctionService{
     pub fn new() -> Self {
         Self {}
     }
-    pub async fn add_function_dev(&self,db: &Pool<Postgres>, req: AddReq,created_by:&Uuid) -> Result<String> {
+    pub async fn add_function(&self,db: &Pool<Postgres>, req: AddReq,created_by:&Uuid) -> Result<String> {
         let function_id=uuid::Uuid::new_v4();
         let id = sqlx::query_scalar!(
             // language=PostgreSQL
@@ -32,7 +32,7 @@ impl RuntimeFuctionService{
         .await?;
         Ok(id.to_string())
     }
-    pub async fn get_function_dev(db: &Pool<Postgres>, function_id: &str) -> Result<Option<Function>> {
+    pub async fn get_function(db: &Pool<Postgres>, function_id: &str) -> Result<Option<Function>> {
         let function_id=uuid::Uuid::parse_str(function_id)?;
         let res = sqlx::query_as!(
             Function,
@@ -44,7 +44,7 @@ impl RuntimeFuctionService{
         .await?;
         Ok(res)
     }
-    pub async fn get_function_dev_by_name(db: &Pool<Postgres>, function_name: &str) -> Result<Option<Function>> {
+    pub async fn get_function_by_name(db: &Pool<Postgres>, function_name: &str) -> Result<Option<Function>> {
         let res = sqlx::query_as!(
             Function,
             // language=PostgreSQL
@@ -55,7 +55,7 @@ impl RuntimeFuctionService{
         .await?;
         Ok(res)
     }
-    pub async fn get_function_dev_by_id(db: &Pool<Postgres>, function_id: &str) -> Result<Option<Function>> {
+    pub async fn get_function_by_id(db: &Pool<Postgres>, function_id: &str) -> Result<Option<Function>> {
         let function_id=Uuid::parse_str(function_id)?;
         let res = sqlx::query_as!(
             Function,
@@ -67,7 +67,7 @@ impl RuntimeFuctionService{
         .await?;
         Ok(res)
     }
-    pub async fn update_function_dev(&self,db: &Pool<Postgres>, function_dev: &UpdateReq,update_by:&Uuid)->Result<Option<Function>>{
+    pub async fn update_function(&self,db: &Pool<Postgres>, function_dev: &UpdateReq,update_by:&Uuid)->Result<Option<Function>>{
         let function_id= Uuid::parse_str(&function_dev.function_id)?;
         let _res = sqlx::query_scalar!(
             // language=PostgreSQL
@@ -77,9 +77,9 @@ impl RuntimeFuctionService{
             update_by,
             function_id,
         );
-        return  Self::get_function_dev_by_id(db,&function_dev.function_id).await;
+        return  Self::get_function_by_id(db,&function_dev.function_id).await;
     }
-    pub async fn delete_function_dev(&self,db: &Pool<Postgres>, function_id: &Uuid) -> Result<bool> {
+    pub async fn delete_function(&self,db: &Pool<Postgres>, function_id: &Uuid) -> Result<bool> {
         let res = sqlx::query_scalar!(
             // language=PostgreSQL
             r#"delete from "function" where function_id=$1"#,
@@ -89,7 +89,7 @@ impl RuntimeFuctionService{
         .await?;
         Ok(res.is_some())
     }
-    pub async fn page_function_dev(&self,db: &Pool<Postgres>, page:PageParams) -> Result<FnDevPageResponse> {
+    pub async fn page_function_dev(&self,db: &Pool<Postgres>, page:PageParams) -> Result<FnPageResponse> {
         let pagination = Pagination::build_from_request_query(page).count(1).build();
         let res = sqlx::query_as!(
             Function,

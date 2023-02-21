@@ -15,10 +15,11 @@
 
 
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize,FromRow)]
 pub struct FunctionHistory {
     pub function_history_id: Uuid,
     pub function_id: Uuid,
