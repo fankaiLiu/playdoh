@@ -23,14 +23,9 @@ pub async fn careate(
     dbg!(&req);
     let db = DB.get_or_init(db_conn).await;
     let user_id = Uuid::parse_str(&user.id)?;
-    let res = CONTEXT.runtime_funciton.add_function(db, req,&user_id).await;
-    match res {
-        Ok(x) => Ok(CustomResponseBuilder::new().body(x).build()),
-        Err(e) => Ok(CustomResponseBuilder::new()
-            .body(e.to_string())
-            .status_code(StatusCode::INTERNAL_SERVER_ERROR)
-            .build()),
-    }
+    let function = CONTEXT.runtime_funciton.add_function(db, req,&user_id).await?;
+    let res =CONTEXT.runtime_function_history.add_function_history(db, function, None).await?;
+    Ok(CustomResponseBuilder::new().body(res.to_string()).build())
 }
 
 pub async fn update(

@@ -18,19 +18,19 @@ impl RuntimeFuctionService{
     pub fn new() -> Self {
         Self {}
     }
-    pub async fn add_function(&self,db: &Pool<Postgres>, req: AddReq,created_by:&Uuid) -> Result<String> {
-        let function_id=uuid::Uuid::new_v4();
-        let id = sqlx::query_scalar!(
+    pub async fn add_function(&self,db: &Pool<Postgres>, req: AddReq,created_by:&Uuid) -> Result<Function> {
+        let function = sqlx::query_as!(
             // language=PostgreSQL
-            r#"insert into "function" (function_name, function_id, code,created_by ) values ($1,$2,$3,$4) returning function_id"#,
+            Function,
+            r#"insert into "function" (function_name, code,created_by ) values ($1,$2,$3) returning function_id ,code,function_name,status,call_number
+            , created_at,created_by,path,version,updated_by,updated_at"#,
             req.function_name,
-            function_id,
             req.code,
             created_by,                
         )
         .fetch_one(db)
         .await?;
-        Ok(id.to_string())
+        Ok(function)
     }
     pub async fn get_function(db: &Pool<Postgres>, function_id: &str) -> Result<Option<Function>> {
         let function_id=uuid::Uuid::parse_str(function_id)?;

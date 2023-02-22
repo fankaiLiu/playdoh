@@ -17,29 +17,7 @@ static JS_DATA: Lazy<Mutex<HashMap<String, Value>>> = Lazy::new(|| Mutex::new(Ha
 
 pub async fn run(code: &str, args: &str) -> String {
     let rt = Builder::new_current_thread().enable_all().build().unwrap();
-    let id = Uuid::new_v4();
-    let file_name = format!("{}.js", id);
-    if !std::path::Path::new("js").exists() {
-        std::fs::create_dir("js").unwrap();
-    }
-    let path = std::path::Path::new("js");
-    let path = path.join(file_name);
-    let file_name = path.clone().into_os_string().into_string().unwrap();
-    let mut file = tokio::fs::File::create(path).await.unwrap();
-    let init_code = format!(
-        r#"const inner_id="{}";
-        const args = JSON.parse('{}');
-    {}
-    "#,
-        &id,
-        args,
-        " function add_msg(key,msg){
-        result(inner_id,key,msg);
-    }"
-    );
-    file.write_all(init_code.as_bytes()).await.unwrap();
-    file.write_all(code.as_bytes()).await.unwrap();
-    file.flush().await.unwrap();
+    let (id, file_name) = save_code(args, code).await;
     {
         let mut result = JS_DATA.lock().unwrap();
         let json = json!({
@@ -70,6 +48,33 @@ pub async fn run(code: &str, args: &str) -> String {
         .clone();
     JS_DATA.lock().unwrap().remove(&id.to_string());
     result.to_string()
+}
+
+async fn save_code(args: &str, code: &str) -> (Uuid, String) {
+    let id = Uuid::new_v4();
+    let file_name = format!("{}.js", id);
+    if !std::path::Path::new("js").exists() {
+        std::fs::create_dir("js").unwrap();
+    }
+    let path = std::path::Path::new("js");
+    let path = path.join(file_name);
+    let file_name = path.clone().into_os_string().into_string().unwrap();
+    let mut file = tokio::fs::File::create(path).await.unwrap();
+    let init_code = format!(
+        r#"const inner_id="{}";
+        const args = JSON.parse('{}');
+    {}
+    "#,
+        &id,
+        args,
+        " function add_msg(key,msg){
+        result(inner_id,key,msg);
+    }"
+    );
+    file.write_all(init_code.as_bytes()).await.unwrap();
+    file.write_all(code.as_bytes()).await.unwrap();
+    file.flush().await.unwrap();
+    (id, file_name)
 }
 
 async fn execute_main_module(rt: &mut JsRuntime, path: impl AsRef<str>) -> Result<()> {

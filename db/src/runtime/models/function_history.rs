@@ -1,3 +1,4 @@
+use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::runtime::entities::function::Function;

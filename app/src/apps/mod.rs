@@ -53,7 +53,7 @@ fn auth_api() -> Router {
     // };
 
     let router = router
-        //     .layer(middleware::from_fn(auth_fn_mid))
+        //.layer(middleware::from_fn(auth_fn_mid))
         .layer(middleware::from_fn(ctx_fn_mid))
         .layer(middleware::from_extractor::<Claims>());
     router
