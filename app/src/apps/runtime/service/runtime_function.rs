@@ -22,7 +22,7 @@ impl RuntimeFuctionService{
         let function = sqlx::query_as!(
             // language=PostgreSQL
             Function,
-            r#"insert into "function" (function_name, code,created_by ) values ($1,$2,$3) returning function_id ,code,function_name,status,call_number
+            r#"insert into "function" (function_name, code,created_by ,path ) values ($1,$2,$3,'f') returning function_id ,code,function_name,status,call_number
             , created_at,created_by,path,version,updated_by,updated_at"#,
             req.function_name,
             req.code,
