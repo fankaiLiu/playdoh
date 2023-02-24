@@ -7,7 +7,7 @@ mod sys_online;
 mod sys_role;
 mod sys_menu;
 mod sys_home;
-pub use sys_user::{login,login_check,login_page};
+pub use sys_user::{login,login_check};
 
 pub fn system_api() -> Router {
     Router::new().nest("/user", sys_user_api()) // 用户管理模块

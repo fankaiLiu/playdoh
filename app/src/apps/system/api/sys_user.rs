@@ -1,3 +1,5 @@
+use std::{future::Future, pin::Pin};
+
 use crate::{
     apps::system::service::{self, sys_user::UserPageResponse},
     custom_response::{CustomResponse, CustomResponseBuilder, HtmlTemplate},
@@ -8,7 +10,7 @@ use crate::{
 use askama::Template;
 use axum::{
     extract::Query,
-    response::{Html, IntoResponse, Response, Redirect},
+    response::{Html, IntoResponse, Redirect, Response},
     Form, Json,
 };
 use db::{
@@ -16,28 +18,21 @@ use db::{
     system::models::sys_user::{CreateUser, LoginUser, NewUser, UpdateUser},
     DB,
 };
-use tower_cookies::{Cookie, Cookies};
 use headers::HeaderMap;
+use tower_cookies::{Cookie, Cookies};
 #[derive(Template)]
 #[template(path = "login.html")]
 struct LoginTemplate<'a> {
     name: &'a str,
 }
 static COOKIE_NAME: &str = "token";
-                                                                                           
-pub async fn login_check(cookies: Cookies,) -> impl IntoResponse {
-        dbg!(&cookies);
-     if cookies.get(COOKIE_NAME).is_some(){
-        return Redirect::to("/system"); 
-     }
-    let a = LoginTemplate { name: "world" };
-    return Redirect::to("/login_page"); 
-}
-pub async fn login_page() -> impl IntoResponse {
-    
-   let a = LoginTemplate { name: "world" };
-   return  HtmlTemplate(a);
 
+pub async fn login_check(cookies: Cookies) -> Response {
+    if cookies.get(COOKIE_NAME).is_some() {
+        return Redirect::to("/system").into_response();
+    }
+    let a = LoginTemplate { name: "world" };
+    return HtmlTemplate(a).into_response();
 }
 
 #[derive(Template)]
@@ -51,8 +46,8 @@ pub async fn login<'a>(
     cookies: Cookies,
     Form(req): Form<LoginUser>,
 ) -> Result<HtmlTemplate<WorkSpaceTemplate<'a>>> {
-    let db = DB.get_or_init(db_conn).await; 
-    let res = service::sys_user::login(cookies,db, req, header).await?;
+    let db = DB.get_or_init(db_conn).await;
+    let res = service::sys_user::login(cookies, db, req, header).await?;
     //Ok(CustomResponseBuilder::new().body(res).build())
     let a = WorkSpaceTemplate { name: "world" };
     Ok(HtmlTemplate(a))
