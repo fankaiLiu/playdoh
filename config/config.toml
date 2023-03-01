@@ -6,7 +6,7 @@ log_level="info"
 dir = "log"
 file = "app_log"
 [database]
-link = 'postgresql://postgres:1@localhost/palyoh'
+link = 'postgresql://liufankai:1@localhost/palyoh'
 hmac_key="asd"
 [jwt]
 jwt_secret="se"
