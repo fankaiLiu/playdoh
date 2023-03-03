@@ -115,9 +115,8 @@ impl RuntimeFuctionService{
         let code=record.code;
         let now=OffsetDateTime::now_utc();
         dbg!(&code);
-        let res=run(&code,"{}").await;
+        let res=run(&code,"{}").await?;
         let log=FunctionLogAddReq::new(record.function_name,now,Source::Dev,Status::Success,user_id,&record.function_id.clone(),true,"{}".to_string(),res.clone());
-        
         CONTEXT.runtime_function_log.add_function_log(db,log).await?;
         return Ok(res);
     }
