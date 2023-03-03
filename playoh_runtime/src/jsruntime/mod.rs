@@ -1,5 +1,5 @@
 
-use deno_core::{resolve_url_or_path, FsModuleLoader, JsRuntime, RuntimeOptions};
+use deno_core::{FsModuleLoader};
 use once_cell::sync::Lazy;
 use serde_json::{json, Value};
 use std::rc::Rc;
@@ -16,7 +16,7 @@ use deno_runtime::permissions::PermissionsContainer;
 use deno_runtime::worker::MainWorker;
 use deno_runtime::worker::WorkerOptions;
 use deno_runtime::BootstrapOptions;
-use std::fs::File;
+
 use std::path::Path;
 use std::sync::Arc;
 
@@ -30,7 +30,7 @@ deno_runtime::errors::get_error_class_name(e).unwrap_or("Error")
 static JS_DATA: Lazy<Mutex<HashMap<String, Value>>> = Lazy::new(|| Mutex::new(HashMap::new()));
 
 pub async fn run(code: &str, args: &str) -> Result<String, AnyError> {
-    let rt = Builder::new_current_thread().enable_all().build().unwrap();
+    let _rt = Builder::new_current_thread().enable_all().build().unwrap();
     let (id, file_name) = save_code(args, code).await;
     {
         let mut result = JS_DATA.lock().unwrap();
@@ -90,9 +90,9 @@ pub async fn run(code: &str, args: &str) -> Result<String, AnyError> {
       broadcast_channel: InMemoryBroadcastChannel::default(),
       shared_array_buffer_store: None,
       compiled_wasm_module_store: None,
-      stdio: stdio,
+      stdio,
     };
-    let js_path =
+    let _js_path =
       Path::new(env!("CARGO_MANIFEST_DIR")).join(&file_name);
     let main_module = deno_core::resolve_path(&file_name)?;
     let permissions = PermissionsContainer::allow_all();

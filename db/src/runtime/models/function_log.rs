@@ -56,16 +56,16 @@ impl AddReq {
     pub fn new(function_name:String,start_time:OffsetDateTime,source:Source,status:Status,user_id:Option<Uuid>,source_id:&Uuid,is_success:bool,arguments:String,result_log:String) -> Self {
         let now = OffsetDateTime::now_utc();
         AddReq {
-            function_name: function_name,
-            start_time: start_time,
+            function_name,
+            start_time,
             end_time: now,
             status: status.to_string(),
             execution_user_id: user_id,
             source: source.to_string(),
-            source_id: source_id.clone(),
+            source_id: *source_id,
             result_log: Some(result_log),
             duration_ms: (now-start_time).whole_milliseconds() as i64,
-            is_success: is_success,
+            is_success,
             arguments: Some(arguments),
         }
     }
