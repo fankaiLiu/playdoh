@@ -386,7 +386,9 @@ create table function_log (
     execution_user_id uuid default null,
     source varchar(50),
     source_id uuid not null,
-    result_log text,
+    result text,
+    console_log text,
+    console_err text,
     duration_ms bigint,
     is_success boolean not null default false,
     arguments text
@@ -418,3 +420,8 @@ create table oss_upload_history (
     -- Status of the file, such as "deleted" or "normal"
     download_url varchar(255) -- Download URL of the file
 );
+
+insert into public.sys_user (user_id, user_name, user_nickname, email, bio, role_id, dept_id, remark, is_admin, phone_num, last_login_ip, last_login_time, gender, avatar, status, password_hash, created_at, updated_at, deleted_at) values
+('a820a2de-ba5c-11ed-96d2-f3d65b3c7f83','jack',null,'jack@q.com','',null,'9e41087e-ba5e-11ed-9312-87f38a66fbc3',null,0,null,null,null,0,null,0,'$argon2id$v=19$m=4096,t=3,p=1$kuNJ4T/SRD8woBHeKUIvwg$oteuKCch6xYY8t8PJcCSMjcDyZVRebRLLw6lMR+GBbE','2023-03-04 15:17:43.879698+08','2023-03-04 15:32:26.829629+08',null);
+INSERT INTO public.sys_dept (dept_id, parent_id, dept_name, order_num, leader, phone, email, status, created_by, updated_by, created_at, updated_at, deleted_at) VALUES
+('9e41087e-ba5e-11ed-9312-87f38a66fbc3',null,'dept',1,null,null,null,1,'a820a2de-ba5c-11ed-96d2-f3d65b3c7f83','a820a2de-ba5c-11ed-96d2-f3d65b3c7f83','2023-03-04 15:31:46.3105+08',null,null);
