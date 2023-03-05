@@ -8,7 +8,7 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 use crate::pagination::{PageParams, Pagination};
 use crate::{Result, pagination::PageTurnResponse, apps::CONTEXT};
-use playoh_runtime::jsruntime::run;
+use playoh_runtime::jsruntime::{run, ExecutionResult};
 pub struct  RuntimeFuctionService{
 
 }
@@ -109,14 +109,14 @@ impl RuntimeFuctionService{
         let page_turn = PageTurnResponse::new(total.unwrap_or_default(),pagination.limit,res );
         Ok(page_turn)
     }
-    pub async fn run(&self,db: &Pool<Postgres>, function_id: &Uuid,user_id:Option<Uuid>)->Result<String>
+    pub async fn run(&self,db: &Pool<Postgres>, function_id: &Uuid,user_id:Option<Uuid>)->Result<ExecutionResult>
     {
         let record =sqlx::query!("select code ,function_name ,function_id from function where function_id=$1",function_id).fetch_one(db).await?;
         let code=record.code;
         let now=OffsetDateTime::now_utc();
         dbg!(&code);
         let res=run(&code,"{}").await?;
-        let log=FunctionLogAddReq::new(record.function_name,now,Source::Dev,Status::Success,user_id,&record.function_id.clone(),true,"{}".to_string(),res.clone());
+        let log=FunctionLogAddReq::new(record.function_name,now,Source::Dev,Status::Success,user_id,&record.function_id.clone(),true,"{}".to_string(),res.result.clone(),res.console_log.clone(),res.console_error.clone());
         CONTEXT.runtime_function_log.add_function_log(db,log).await?;
         return Ok(res);
     }

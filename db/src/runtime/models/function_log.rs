@@ -30,7 +30,9 @@ pub struct AddReq {
     pub execution_user_id: Option<Uuid>,
     pub source: String,
     pub source_id: Uuid,
-    pub result_log:Option<String>,
+    pub result:Option<String>,
+    pub console_log:Option<String>,
+    pub console_error:Option<String>,
     pub duration_ms: i64,
     pub is_success: bool,
     pub arguments: Option<String>,
@@ -45,7 +47,9 @@ pub struct FnLog {
     pub execution_user_id: Option<Uuid>,
     pub source: Option<String>,
     pub source_id: Uuid,
-    pub result_log: Option<String>,
+    pub result: Option<String>,
+    pub console_log: Option<String>,
+    pub console_err: Option<String>,
     pub duration_ms: Option<i64>,
     pub is_success: bool,
     pub arguments: Option<String>,
@@ -53,7 +57,8 @@ pub struct FnLog {
 
 
 impl AddReq {
-    pub fn new(function_name:String,start_time:OffsetDateTime,source:Source,status:Status,user_id:Option<Uuid>,source_id:&Uuid,is_success:bool,arguments:String,result_log:String) -> Self {
+    pub fn new(function_name:String,start_time:OffsetDateTime,source:Source,status:Status,user_id:Option<Uuid>,source_id:&Uuid,is_success:bool,
+        arguments:String,result_log:String,console_log:Option<String>,console_error:Option<String>) -> Self {
         let now = OffsetDateTime::now_utc();
         AddReq {
             function_name,
@@ -63,7 +68,9 @@ impl AddReq {
             execution_user_id: user_id,
             source: source.to_string(),
             source_id: *source_id,
-            result_log: Some(result_log),
+            result: Some(result_log),
+            console_log: console_log,
+            console_error: console_error,
             duration_ms: (now-start_time).whole_milliseconds() as i64,
             is_success,
             arguments: Some(arguments),

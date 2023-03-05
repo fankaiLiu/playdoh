@@ -28,6 +28,7 @@ struct LoginTemplate<'a> {
 static COOKIE_NAME: &str = "token";
 
 pub async fn login_check(cookies: Cookies) -> Response {
+    //TODO: if cookies is expired, return login_page
     if cookies.get(COOKIE_NAME).is_some() {
         return Redirect::to("/system").into_response();
     }

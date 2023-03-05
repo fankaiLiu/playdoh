@@ -1,5 +1,9 @@
 /target
 /log
 /playoh_runtime/js
+/playoh_runtime/console_log
+/playoh_runtime/console_error
+/console_log
+/console_error
 /js
 /log

@@ -80,7 +80,7 @@ pub async fn add() -> Result<HtmlTemplate<FunctionAddTemplate>> {
         let function_id = Uuid::parse_str(&param.1)?;
         let user_id=Uuid::parse_str(&user.id)?;
         let res = CONTEXT.runtime_funciton.run(db, &function_id,Some(user_id)).await?;
-        let html = SuccessAlertWithButtonTemplate {msg:res};
+        let html = SuccessAlertWithButtonTemplate {msg:res.result};
         return Ok(HtmlTemplate(html));
     }
    todo!()
