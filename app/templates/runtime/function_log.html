@@ -10,7 +10,10 @@
       <li>
         <div class="relative pb-8">
           {%- if index !=data.data.len()-1 -%}
-          <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+          <span
+            class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"
+            aria-hidden="true"
+          ></span>
           {%- endif -%}
           <div class="relative flex space-x-3">
             <div>
@@ -37,12 +40,17 @@
               <div>
                 <p class="text-sm text-gray-500">
                   Completed
-                  <a href="#" class="font-medium text-gray-900">{% if let Some(some_text) = row.result %}{{ some_text }}{% endif %}
+                  <a href="#" class="font-medium text-gray-900"
+                    >{% if let Some(some_text) = row.result %}{{ some_text }}{%
+                    endif %}
                   </a>
                 </p>
               </div>
               <div class="whitespace-nowrap text-right text-sm text-gray-500">
-                <time datetime="2020-10-04">{% if let Some(some_text) = row.start_time %}{{ some_text }}{% endif %}  </time>
+                <time datetime="2020-10-04"
+                  >{% if let Some(some_text) = row.start_time %}{{ some_text
+                  }}{% endif %}
+                </time>
               </div>
             </div>
           </div>
